@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>MRR__c</fullName>
+    <formula>IF(
+    ISPICKVAL(Status__c, &apos;Active&apos;),
+    CASE(
+        TEXT(Price_Plan__r.Billing_Frequency__c),
+        &apos;Monthly&apos;, Price_Plan__r.Price__c * Quantity__c,
+        &apos;Quarterly&apos;, (Price_Plan__r.Price__c * Quantity__c) / 3,
+        &apos;Semi-Annual&apos;, (Price_Plan__r.Price__c * Quantity__c) / 6,
+        &apos;Annual&apos;, (Price_Plan__r.Price__c * Quantity__c) / 12,
+        0
+    ),
+    0
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>MRR</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Currency</type>
+</CustomField>
