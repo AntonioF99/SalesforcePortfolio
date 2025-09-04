@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Valid_Trial_Days</fullName>
+    <active>true</active>
+    <errorConditionFormula>OR(
+    Trial_Days__c &lt; 0,
+    Trial_Days__c &gt; 365
+)</errorConditionFormula>
+    <errorDisplayField>Trial_Days__c</errorDisplayField>
+    <errorMessage>Trial Days must be between 0 and 365</errorMessage>
+</ValidationRule>
