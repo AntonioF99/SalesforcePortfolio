@@ -25,10 +25,10 @@ jobs:
           sf --version
       
       - name: Authorize Salesforce Org
-        run: |
-          echo "${{ secrets.SFDX_AUTH_URL }}" > auth-file.json
-          sf org login sfdx-url --sfdx-url-file auth-file.json --alias PortfolioOrg --set-default
-          rm auth-file.json
+       run: |
+        echo "${{ secrets.SFDX_AUTH_URL_BASE64 }}" | base64 -d > auth-file.txt
+        sf org login sfdx-url --sfdx-url-file auth-file.txt --alias PortfolioOrg --set-default
+        rm auth-file.txt
       
       - name: Validate Deploy
         run: |
