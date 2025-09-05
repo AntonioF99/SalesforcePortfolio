@@ -7,18 +7,38 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
+      contents: read
       pull-requests: write
       issues: write
     
     steps:
       - uses: actions/checkout@v3
       
-      - name: Check Files
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install Salesforce CLI
         run: |
-          echo "Checking repository structure..."
-          ls -la force-app/main/default/
-          echo "Files check complete!"
+          npm install -g @salesforce/cli
+          sf --version
+      
+      - name: Authorize Salesforce Org
+        run: |
+          echo "${{ secrets.SF_PASSWORD }}" | sf org login web \
+            --client-id PlatformCLI \
+            --instance-url "${{ secrets.SF_LOGIN_URL }}" \
+            --username "${{ secrets.SF_USERNAME }}" \
+            --alias PortfolioOrg \
+            --set-default \
+            --no-prompt
+      
+      - name: Validate Deploy
+        run: |
+          sf project deploy validate --source-dir force-app --target-org PortfolioOrg || true
       
       - name: Comment PR
         if: always()
@@ -26,9 +46,11 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+            const message = status + ' Validation ' + '${{ job.status }}';
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ GitHub Actions working! SF auth needs different approach.'
+              body: message
             })

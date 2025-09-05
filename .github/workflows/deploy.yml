@@ -22,14 +22,14 @@ jobs:
       
       - name: Authorize Salesforce Org
         run: |
-          echo "y" | sf org login \
-            --username "${{ secrets.SF_USERNAME }}" \
+          echo "${{ secrets.SF_PASSWORD }}" | sf org login web \
+            --client-id PlatformCLI \
             --instance-url "${{ secrets.SF_LOGIN_URL }}" \
+            --username "${{ secrets.SF_USERNAME }}" \
             --alias PortfolioOrg \
-            --set-default
-        env:
-          SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
-        
+            --set-default \
+            --no-prompt
+      
       - name: Deploy to Org
         run: |
           sf project deploy start --source-dir force-app --target-org PortfolioOrg
