@@ -28,17 +28,13 @@ jobs:
       
       - name: Authorize Salesforce Org
         run: |
-          echo "${{ secrets.SF_PASSWORD }}" | sf org login web \
-            --client-id PlatformCLI \
-            --instance-url "${{ secrets.SF_LOGIN_URL }}" \
-            --username "${{ secrets.SF_USERNAME }}" \
-            --alias PortfolioOrg \
-            --set-default \
-            --no-prompt
+          echo "${{ secrets.SFDX_AUTH_URL }}" > auth-file.txt
+          sf org login sfdx-url --sfdx-url-file auth-file.txt --alias PortfolioOrg --set-default
+          rm auth-file.txt
       
       - name: Validate Deploy
         run: |
-          sf project deploy validate --source-dir force-app --target-org PortfolioOrg || true
+          sf project deploy validate --source-dir force-app --target-org PortfolioOrg
       
       - name: Comment PR
         if: always()

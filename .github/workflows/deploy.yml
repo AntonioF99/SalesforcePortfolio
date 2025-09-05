@@ -22,13 +22,9 @@ jobs:
       
       - name: Authorize Salesforce Org
         run: |
-          echo "${{ secrets.SF_PASSWORD }}" | sf org login web \
-            --client-id PlatformCLI \
-            --instance-url "${{ secrets.SF_LOGIN_URL }}" \
-            --username "${{ secrets.SF_USERNAME }}" \
-            --alias PortfolioOrg \
-            --set-default \
-            --no-prompt
+          echo "${{ secrets.SFDX_AUTH_URL }}" > auth-file.txt
+          sf org login sfdx-url --sfdx-url-file auth-file.txt --alias PortfolioOrg --set-default
+          rm auth-file.txt
       
       - name: Deploy to Org
         run: |
