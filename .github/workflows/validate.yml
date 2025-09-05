@@ -9,16 +9,13 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:                    # ← AGGIUNGI QUESTA SEZIONE
+    permissions:
       contents: read
       pull-requests: write
       issues: write
-      statuses: write
     
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -32,11 +29,13 @@ jobs:
       
       - name: Authorize Salesforce Org
         run: |
-          echo "${{ secrets.SF_PASSWORD }}" | sf org login org \
+          echo "y" | sf org login \
             --username "${{ secrets.SF_USERNAME }}" \
             --instance-url "${{ secrets.SF_LOGIN_URL }}" \
             --alias PortfolioOrg \
             --set-default
+        env:
+          SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
       
       - name: Validate Deploy
         run: |

@@ -22,11 +22,13 @@ jobs:
       
       - name: Authorize Salesforce Org
         run: |
-          echo "${{ secrets.SF_PASSWORD }}" | sf org login org \
+          echo "y" | sf org login \
             --username "${{ secrets.SF_USERNAME }}" \
             --instance-url "${{ secrets.SF_LOGIN_URL }}" \
             --alias PortfolioOrg \
             --set-default
+        env:
+          SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
         
       - name: Deploy to Org
         run: |
