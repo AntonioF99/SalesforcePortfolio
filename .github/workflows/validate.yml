@@ -8,6 +8,12 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:                    # ← AGGIUNGI QUESTA SEZIONE
+      contents: read
+      pull-requests: write
+      issues: write
+      statuses: write
     
     steps:
       - uses: actions/checkout@v3
@@ -26,13 +32,11 @@ jobs:
       
       - name: Authorize Salesforce Org
         run: |
-          sf org login username \
+          echo "${{ secrets.SF_PASSWORD }}" | sf org login org \
             --username "${{ secrets.SF_USERNAME }}" \
-            --password "${{ secrets.SF_PASSWORD }}" \
             --instance-url "${{ secrets.SF_LOGIN_URL }}" \
             --alias PortfolioOrg \
-            --set-default \
-            --no-prompt
+            --set-default
       
       - name: Validate Deploy
         run: |
@@ -42,7 +46,7 @@ jobs:
         if: always()
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}  
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
             const message = status + ' Validation ' + '${{ job.status }}';
