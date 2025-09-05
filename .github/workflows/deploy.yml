@@ -21,10 +21,14 @@ jobs:
           npm install -g @salesforce/cli
       
       - name: Authorize Salesforce Org
-       run: |
-        echo "${{ secrets.SFDX_AUTH_URL_BASE64 }}" | base64 -d > auth-file.txt
-        sf org login sfdx-url --sfdx-url-file auth-file.txt --alias PortfolioOrg --set-default
-        rm auth-file.txt
+        run: |
+          sf org login username \
+          --username "${{ secrets.SF_USERNAME }}" \
+          --password "${{ secrets.SF_PASSWORD }}" \
+          --instance-url "${{ secrets.SF_LOGIN_URL }}" \
+          --alias PortfolioOrg \
+          --set-default \
+          --no-prompt
         
       - name: Deploy to Org
         run: |
