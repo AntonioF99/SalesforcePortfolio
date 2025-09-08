@@ -3,16 +3,18 @@ name: Validate PR
 on:
   pull_request:
     branches: [ main ]
-    types: [opened, synchronize, reopened]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -26,9 +28,9 @@ jobs:
       
       - name: Authorize Salesforce Org
         run: |
-          echo "${{ secrets.SFDX_AUTH_URL }}" > auth-file.json
-          sf org login sfdx-url --sfdx-url-file auth-file.json --alias PortfolioOrg --set-default
-          rm auth-file.json
+          echo "${{ secrets.SFDX_AUTH_URL }}" > auth-file.txt
+          sf org login sfdx-url --sfdx-url-file auth-file.txt --alias PortfolioOrg --set-default
+          rm auth-file.txt
       
       - name: Validate Deploy
         run: |
@@ -38,7 +40,7 @@ jobs:
         if: always()
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}  
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
             const message = status + ' Validation ' + '${{ job.status }}';

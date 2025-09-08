@@ -22,9 +22,9 @@ jobs:
       
       - name: Authorize Salesforce Org
         run: |
-          echo "${{ secrets.SFDX_AUTH_URL }}" > auth-file.json
-          sf org login sfdx-url --sfdx-url-file auth-file.json --alias PortfolioOrg --set-default
-          rm auth-file.json
+          echo "${{ secrets.SFDX_AUTH_URL }}" > auth-file.txt
+          sf org login sfdx-url --sfdx-url-file auth-file.txt --alias PortfolioOrg --set-default
+          rm auth-file.txt
       
       - name: Deploy to Org
         run: |
