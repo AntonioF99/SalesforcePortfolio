@@ -1,9 +1,20 @@
+/**
+ * @description Trigger Framework to manage trigger handlers with recursion and bypass mangement
+ * @author Antonio Franco
+ * @date 2025-09-08
+ * @story STORY-003: Trigger Framework
+ */
 public class TriggerFramework {
 
     private static Set<String> bypassedHandlers = new Set<String>();
     private static final Integer MAX_RECURSION = 3;
     private static Map<String, Integer> recursionMap = new Map<String, Integer>();
 
+    /**
+     * @description Dispatches trigger events to the appropriate handler methods
+     * @param handler An instance of a class implementing IHandler interface
+     * @throws TriggerException if handler is null
+     */
     public static void dispatch(IHandler handler){
 
         if (handler == null) {
@@ -13,10 +24,9 @@ public class TriggerFramework {
 
         if (!Trigger.isExecuting) {
             return; 
-
-        }else{
-            String handlerName = String.valueOf(handler).split(':')[0];
         }
+        
+        String handlerName = String.valueOf(handler).split(':')[0];
 
         if(isBypassed(handlerName) ){
             return;
@@ -26,19 +36,23 @@ public class TriggerFramework {
         return;
 
         }else{
-            incrementRecursionCounter(handlerName);
+            incrementRecursion(handlerName);
             //Recursion logic
             //context Logic
             //invoke appropriate method on handler
             try {
-            routeToHandler(handler);
+                routeToHandler(handler);
             } finally {
-            decrementRecursionCounter(handlerName);
+                decrementRecursion(handlerName);
             }
         } 
         
     }
-
+    /**
+     * @description Routes the trigger event to the correct handler method based on the trigger context
+     * @param handler An instance of a class implementing IHandler interface
+     * @throws TriggerException if trigger context is unsupported
+     */
     private static void routeToHandler(IHandler handler) {
 
         switch on Trigger.operationType {
@@ -65,6 +79,7 @@ public class TriggerFramework {
             }
         }
     }
+ // ========== BYPASS MANAGEMENT METHODS ========== //
 
     public static Boolean isBypassed(String handlerName){
         return bypassedHandlers.contains(handlerName);
@@ -76,7 +91,7 @@ public class TriggerFramework {
 
     }
 
-    public static void clearBypass(){
+    public static void clearBypass(String handlerName){
         bypassedHandlers.remove(handlerName);
 
     }
@@ -85,6 +100,7 @@ public class TriggerFramework {
         bypassedHandlers.clear();
 
     }
+    // ========== RECURSION MANAGEMENT METHODS ========== //
 
    private static void incrementRecursion(String handlerName) {
         Integer count = recursionMap.get(handlerName);
@@ -102,10 +118,16 @@ public class TriggerFramework {
     private static Boolean checkRecursionLimit(String handlerName) {
         Integer count = recursionMap.get(handlerName);
         return count != null && count >= MAX_RECURSION;
+
     }
 
+    /* 
+    * description : Custom exception for trigger framework errors
+    */
+    public class TriggerException extends Exception {
 
-    public class TriggerException extends Exception {}
+    }
+
 }
 
 
