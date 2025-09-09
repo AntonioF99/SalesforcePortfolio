@@ -6,5 +6,3 @@
     <errorDisplayField>Unit_Price__c</errorDisplayField>
     <errorMessage>Unit Price cannot be negative</errorMessage>
 </ValidationRule>
-
-
