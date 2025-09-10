@@ -43,10 +43,7 @@ public class SubscriptionTriggerHandler implements IHandler {
         SubscriptionValidator.validateStateTransitions(oldSubscriptions, newSubscriptions);
         
         // Check user permissions for status changes
-        List<Subscription__c> cancellingSubscriptions = getCancellingSubscriptions(oldSubscriptions, newSubscriptions);
-        if (!cancellingSubscriptions.isEmpty()) {
-            SubscriptionValidator.validateUserPermissions(cancellingSubscriptions, 'CANCEL');
-        }
+        SubscriptionValidator.validateCancellationPermissions(oldSubscriptions, newSubscriptions);
         
         // Validate business rules
         SubscriptionValidator.validateBusinessRules(subscriptionsList, true);
@@ -64,7 +61,7 @@ public class SubscriptionTriggerHandler implements IHandler {
         List<Subscription__c> subscriptions = (List<Subscription__c>) oldMap.values();
         
         // Validate user permissions for deletion
-        SubscriptionValidator.validateUserPermissions(subscriptions, 'DELETE');
+        SubscriptionValidator.validateDeletionPermissions(subscriptions);
         
         System.debug('SubscriptionTriggerHandler.beforeDelete: Completed');
     }
@@ -130,28 +127,6 @@ public class SubscriptionTriggerHandler implements IHandler {
     
     // ========== PRIVATE HELPER METHODS ==========
     
-    /**
-     * @description Identifies subscriptions being cancelled
-     * @param oldSubscriptions Map of old subscription records
-     * @param newSubscriptions Map of new subscription records
-     * @return List of subscriptions being cancelled
-     */
-    private List<Subscription__c> getCancellingSubscriptions(Map<Id, Subscription__c> oldSubscriptions,
-                                                           Map<Id, Subscription__c> newSubscriptions) {
-        
-        List<Subscription__c> cancellingSubscriptions = new List<Subscription__c>();
-        
-        for (Id subId : newSubscriptions.keySet()) {
-            Subscription__c oldSub = oldSubscriptions.get(subId);
-            Subscription__c newSub = newSubscriptions.get(subId);
-            
-            if (oldSub.Status__c != 'Cancelled' && newSub.Status__c == 'Cancelled') {
-                cancellingSubscriptions.add(newSub);
-            }
-        }
-        
-        return cancellingSubscriptions;
-    }
     
     /**
      * @description Handles invoice generation for subscriptions becoming active

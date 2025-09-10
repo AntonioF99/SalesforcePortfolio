@@ -8,7 +8,7 @@ public class SubscriptionValidator {
     
     // State machine configuration
     private static final Map<String, Set<String>> VALID_TRANSITIONS = new Map<String, Set<String>>{
-        'Draft' => new Set<String>{'Trial', 'Active'},
+        'Draft' => new Set<String>{'Trial', 'Active','Cancelled'},
         'Trial' => new Set<String>{'Active', 'Cancelled'},
         'Active' => new Set<String>{'Suspended', 'Cancelled'},
         'Suspended' => new Set<String>{'Active', 'Cancelled'},
@@ -60,32 +60,40 @@ public class SubscriptionValidator {
     }
     
     /**
-     * @description Validates user permissions for subscription operations
-     * @param subscriptions List of subscription records to validate
-     * @param operation Type of operation (DELETE, CANCEL, etc.)
-     */
-    public static void validateUserPermissions(List<Subscription__c> subscriptions, String operation) {
+    * @description Validates cancellation permissions for subscription status changes
+    * @param oldSubscriptions Map of old subscription records
+    * @param newSubscriptions Map of new subscription records
+    */
+    public static void validateCancellationPermissions(Map<Id, Subscription__c> oldSubscriptions, 
+                                                    Map<Id, Subscription__c> newSubscriptions) {
         
-        // Check permission for cancelling subscriptions
-        if (operation == 'CANCEL') {
-            Boolean canCancelAny = FeatureManagement.checkPermission('Cancel_Any_Subscription');
-            
-            if (!canCancelAny) {
-                for (Subscription__c sub : subscriptions) {
-                    // Only allow cancellation of draft subscriptions without special permission
-                    if (sub.Status__c != 'Draft') {
-                        sub.addError('You do not have permission to cancel active subscriptions');
+        Boolean canCancelAny = FeatureManagement.checkPermission('Cancel_Any_Subscription');
+        
+        if (!canCancelAny) {
+            for (Id subId : newSubscriptions.keySet()) {
+                Subscription__c oldSub = oldSubscriptions.get(subId);
+                Subscription__c newSub = newSubscriptions.get(subId);
+                
+                // Check if this is a cancellation
+                if (oldSub.Status__c != 'Cancelled' && newSub.Status__c == 'Cancelled') {
+                    // Allow cancellation of draft subscriptions without special permission
+                    if (oldSub.Status__c != 'Draft') {
+                        newSub.addError('You do not have permission to cancel active subscriptions');
                     }
                 }
             }
         }
+    }
+
+    /**
+     * @description Validates deletion permissions for subscription records
+     * @param subscriptions List of subscription records being deleted
+     */
+    public static void validateDeletionPermissions(List<Subscription__c> subscriptions) {
         
-        // Check permission for deleting subscriptions
-        if (operation == 'DELETE') {
-            for (Subscription__c sub : subscriptions) {
-                if (sub.Status__c == 'Active') {
-                    sub.addError('Cannot delete active subscriptions. Cancel first, then delete.');
-                }
+        for (Subscription__c sub : subscriptions) {
+            if (sub.Status__c == 'Active') {
+                sub.addError('Cannot delete active subscriptions. Cancel first, then delete.');
             }
         }
     }
@@ -106,14 +114,14 @@ public class SubscriptionValidator {
                 }
             }
             
-            // Trial period validation
-            if (sub.Status__c == 'Trial') {
-                if (sub.Trial_End_Date__c == null) {
-                    sub.addError('Trial_End_Date__c', 'Trial end date is required for trial subscriptions');
+            if (sub.Status__c == 'Trial' && sub.Trial_End_Date__c != null) {
+                if (sub.Trial_End_Date__c <= Date.today()) {
+                    sub.addError('Trial_End_Date__c', 'Trial end date must be in the future');
                 }
                 
-                if (sub.Trial_End_Date__c != null && sub.Trial_End_Date__c <= Date.today()) {
-                    sub.addError('Trial_End_Date__c', 'Trial end date must be in the future');
+                // Nuova validation: massimo 14 giorni
+                if (sub.Trial_End_Date__c > Date.today().addDays(14)) {
+                    sub.addError('Trial_End_Date__c', 'Trial period cannot exceed 14 days');
                 }
             }
             

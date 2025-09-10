@@ -23,7 +23,7 @@ public class TestDataFactory {
             Name = 'Test Account ' + counter,
             BillingStreet = '123 Main St',
             BillingCity = 'San Francisco',
-            BillingState = 'CA',
+            BillingState = 'California',
             BillingPostalCode = '94105',
             BillingCountry = 'United States',
             Phone = '(555) 123-' + String.valueOf(1000 + counter).substring(1),
@@ -54,8 +54,10 @@ public class TestDataFactory {
         return new Product__c(
             Name = 'Test Product ' + counter,
             Description__c = 'Test product description for automated testing',
-            Product_Type__c = 'Software',
+            Product_Type__c = 'Recurring',
+            Product_Code__c = 'PROD-' + String.valueOf(counter).leftPad(4, '0'),
             Status__c = 'Active'
+            
         );
     }
     
