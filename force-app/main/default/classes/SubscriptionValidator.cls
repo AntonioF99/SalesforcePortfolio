@@ -74,10 +74,10 @@ public class SubscriptionValidator {
                 Subscription__c oldSub = oldSubscriptions.get(subId);
                 Subscription__c newSub = newSubscriptions.get(subId);
                 
-                // Check if this is a cancellation
+               // Check if this is a cancellation
                 if (oldSub.Status__c != 'Cancelled' && newSub.Status__c == 'Cancelled') {
-                    // Allow cancellation of draft subscriptions without special permission
-                    if (oldSub.Status__c != 'Draft') {
+                    // Allow cancellation of draft and trial subscriptions without special permission
+                    if (oldSub.Status__c != 'Draft' && oldSub.Status__c != 'Trial') {
                         newSub.addError('You do not have permission to cancel active subscriptions');
                     }
                 }
@@ -152,7 +152,7 @@ public class SubscriptionValidator {
             }
             
             // Set default start date for draft subscriptions
-            if (sub.Status__c == 'Draft' && sub.Start_Date__c == null) {
+            if (sub.Start_Date__c == null) {
                 sub.Start_Date__c = Date.today();
             }
             
