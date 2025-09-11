@@ -17,19 +17,20 @@ public class TestDataFactory {
      * @return Account record (not inserted)
      */
     public static Account createAccount() {
-        counter++;
-        
+    String timestamp = String.valueOf(System.currentTimeMillis()).right(6); // Last 6 digits of timestamp
+    String random = String.valueOf(Math.random()).substring(2, 4);          // 2 digit random
+    String uniqueId = timestamp + random;                                 // Combine for uniqueness
+    
         return new Account(
-            Name = 'Test Account ' + counter,
-            BillingStreet = '123 Main St',
-            BillingCity = 'San Francisco',
-            BillingState = 'California',
-            BillingPostalCode = '94105',
-            BillingCountry = 'United States',
-            Phone = '(555) 123-' + String.valueOf(1000 + counter).substring(1),
+            Name = 'Test Account ' + uniqueId,
+            BillingStreet = 'Via Roma ' + uniqueId.right(3),
+            BillingCity = 'Milan',
+            BillingPostalCode = '20121',
+            BillingCountry = 'Italy',
+            Phone = '+39 02 1234' + uniqueId.right(4),
             Industry = 'Technology'
         );
-    }
+}
     
     /**
      * @description Creates test Account record with custom field overrides
@@ -44,18 +45,20 @@ public class TestDataFactory {
     
     // ========== PRODUCT METHODS ==========
     
-    /**
+      /**
      * @description Creates test Product record with default values
      * @return Product__c record (not inserted)
      */
     public static Product__c createProduct() {
         counter++;
+        // Use timestamp + counter to guarantee uniqueness even across parallel tests
+        String uniqueId = System.currentTimeMillis() + '-' + counter;
         
         return new Product__c(
             Name = 'Test Product ' + counter,
             Description__c = 'Test product description for automated testing',
             Product_Type__c = 'Recurring',
-            Product_Code__c = 'PROD-' + String.valueOf(counter).leftPad(4, '0'),
+            Product_Code__c = 'PROD-' + uniqueId,
             Status__c = 'Active'
             
         );
@@ -152,7 +155,6 @@ public class TestDataFactory {
             Status__c = 'Draft',
             Invoice_Date__c = Date.today(),
             Due_Date__c = Date.today().addDays(30),
-            Tax_Rate__c = 8.25,
             Balance_Due__c = 0
         );
     }
@@ -345,10 +347,4 @@ public class TestDataFactory {
         return ++counter;
     }
     
-    /**
-     * @description Resets the counter for clean test isolation
-     */
-    public static void resetCounter() {
-        counter = 0;
-    }
 }
