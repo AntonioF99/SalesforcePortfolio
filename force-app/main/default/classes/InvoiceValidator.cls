@@ -8,7 +8,7 @@ public class InvoiceValidator {
     
     // Invoice statuses that prevent modifications
     private static final Set<String> LOCKED_STATUSES = new Set<String>{
-        'Paid', 'Cancelled', 'Refunded'
+        'Paid', 'Voided'
     };
     
     // Fields that require special permission to modify on paid invoices
@@ -259,25 +259,16 @@ public class InvoiceValidator {
      * @return Tax rate percentage
      */
     private static Decimal getTaxRate(String state, String country) {
-        
-        // Simplified tax calculation - in real implementation, 
-        // this would use a tax service or custom metadata
-        
-        if (country == 'United States') {
-            // US state tax rates (simplified)
-            switch on state {
-                when 'CA' { return 8.25; }
-                when 'NY' { return 8.0; }
-                when 'TX' { return 6.25; }
-                when 'FL' { return 6.0; }
-                when else { return 5.0; }
-            }
-        } else if (country == 'Italy') {
-            return 22.0; // IVA italiana
-        } else if (country == 'United Kingdom') {
-            return 20.0; // VAT
+        switch on country {
+            when 'Italy' { return 22.0; }
+            when 'Germany' { return 19.0; }
+            when 'France' { return 20.0; }
+            when 'Spain' { return 21.0; }
+            when 'United Kingdom' { return 20.0; }
+            when 'Netherlands' { return 21.0; }
+            when else { return 0.0; }
         }
-        
-        return 0.0; // No tax for other locations
     }
+      
+    
 }
