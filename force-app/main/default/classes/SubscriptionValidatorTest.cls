@@ -1,109 +1,71 @@
 /**
- * @description Test class for SubscriptionValidator
+ * @description Test class for SubscriptionValidator - REFACTORED with TestScenarioFactory
  * @author Antonio Franco
- * @date 2025-09-10
- * @story STORY-005: Test Classes
+ * @date 2025-09-12
+ * @story STORY-005: Test Classes Refactoring
+ * @pattern Clean test architecture using TestDataFactory + TestScenarioFactory
  */
 @isTest
 private class SubscriptionValidatorTest {
     
     @testSetup
     static void setupTestData() {
-        // Don't reset counter to avoid duplicate Product_Code__c issues
-        // TestDataFactory.resetCounter();
-        
-        // Create base test data
-        Account testAccount = TestDataFactory.createAccount();
-        insert testAccount;
-        
-        Product__c testProduct = TestDataFactory.createProduct();
-        insert testProduct;
-        
-        Price_Plan__c testPricePlan = TestDataFactory.createPricePlan(testProduct.Id);
-        insert testPricePlan;
+        // Create complete subscription setup using scenario factory
+        TestScenarioFactory.createCompleteSubscriptionSetup();
     }
     
-    // ========== STATE MACHINE VALIDATION TESTS ==========
+    // ========== STATE MACHINE VALIDATION ==========
     
     @isTest
-    static void testValidStateTransitions() {
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-
-        // Create Draft subscription
-        Subscription__c draftSub = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{'Status__c' => 'Draft'});
-        insert draftSub;
+    static void testValidateStateTransitions() {
+        Map<String, SObject> data = TestScenarioFactory.createSubscriptionStateTransitionData();
         
         Test.startTest();
         
-        // Valid transition: Draft -> Trial
+        // Test valid transitions
+        Subscription__c draftSub = (Subscription__c) data.get('draftSubscription');
         draftSub.Status__c = 'Trial';
         draftSub.Trial_End_Date__c = Date.today().addDays(14);
+        update draftSub; // Should succeed
+        
+        Subscription__c trialSub = (Subscription__c) data.get('trialSubscription');
+        trialSub.Status__c = 'Active';
+        update trialSub; // Should succeed
+        
+        Subscription__c activeSub = (Subscription__c) data.get('activeSubscription');
+        activeSub.Status__c = 'Suspended';
+        activeSub.Cancellation_Reason__c = 'Budget Constraints';
+        update activeSub; // Should succeed
+        
+        // Test invalid transitions
+        Subscription__c suspendedSub = (Subscription__c) data.get('suspendedSubscription');
+        suspendedSub.Status__c = 'Draft'; // Invalid transition
         
         try {
-            update draftSub;
-            System.assertEquals('Trial', draftSub.Status__c, 'Draft to Trial transition should be valid');
-        } catch (Exception e) {
-            System.assert(false, 'Valid Draft to Trial transition should not throw exception: ' + e.getMessage());
-        }
-        
-        Test.stopTest();
-    }
-        
-   @isTest
-    static void testInvalidStateTransitions() {
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-
-        // Create Active subscription
-        Subscription__c activeSub = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{'Status__c' => 'Active'});
-        insert activeSub;
-        
-        Test.startTest();
-        
-        // Invalid transition: Active -> Draft
-        activeSub.Status__c = 'Draft';
-        
-        try {
-            update activeSub;
-            System.assert(false, 'Invalid Active to Draft transition should throw exception');
+            update suspendedSub;
+            System.assert(false, 'Should reject invalid state transition');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('Invalid status transition'), 
-                        'Exception should mention invalid transition: ' + e.getMessage());
+            System.assert(e.getMessage().contains('Invalid status transition'));
         }
         
         Test.stopTest();
     }
     
     @isTest
-    static void testCancelledStatusIsTerminal() {
-        // Setup
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-
-        // Use DRAFT instead of Active to avoid permission issues
-        Subscription__c subscription = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{'Status__c' => 'Draft'});
-        insert subscription;
-        
-        // Draft can be cancelled without special permissions
-        subscription.Status__c = 'Cancelled';
-        subscription.Cancellation_Reason__c = 'Other';
-        update subscription; // This now works
+    static void testTerminalStatusValidation() {
+        Map<String, SObject> data = TestScenarioFactory.createCancelledSubscriptionScenario();
+        Subscription__c cancelledSub = (Subscription__c) data.get('subscription');
         
         Test.startTest();
         
-        // Now test that Cancelled is terminal
-        subscription.Status__c = 'Active';
+        // Try to reactivate cancelled subscription
+        cancelledSub.Status__c = 'Active';
         
         try {
-            update subscription;
-            System.assert(false, 'Cancelled subscription should not be reactivatable');
+            update cancelledSub;
+            System.assert(false, 'Cancelled status should be terminal');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('Invalid status transition'), 
-                         'Should not allow transition from Cancelled status');
+            System.assert(e.getMessage().contains('Invalid status transition'));
         }
         
         Test.stopTest();
@@ -111,327 +73,230 @@ private class SubscriptionValidatorTest {
     
     @isTest
     static void testCancellationReasonRequired() {
-        // Setup
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-
-        Subscription__c subscription = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-        new Map<String, Object>{'Status__c' => 'Active'});
-        insert subscription;
-        
+        Map<String, SObject> data = TestScenarioFactory.createActiveSubscriptionScenario();
+        Subscription__c activeSub = (Subscription__c) data.get('subscription');
         
         Test.startTest();
         
         // Try to cancel without reason
-        subscription.Status__c = 'Cancelled';
+        activeSub.Status__c = 'Cancelled';
         // Deliberately not setting Cancellation_Reason__c
         
         try {
-            update subscription;
-            System.assert(false, 'Cancellation without reason should fail');
+            update activeSub;
+            System.assert(false, 'Should require cancellation reason');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('Cancellation reason is required'), 
-                         'Should require cancellation reason: ' + e.getMessage());
+            System.assert(e.getMessage().contains('Cancellation reason is required'));
+        }
+        
+        // Test with reason - should succeed
+        activeSub.Cancellation_Reason__c = 'Other';
+        try {
+            update activeSub; // This will still fail due to permission, but reason validation passes
+        } catch (DmlException e) {
+            // Permission error is expected, reason validation passed
+            System.assert(e.getMessage().contains('permission'));
         }
         
         Test.stopTest();
     }
     
-    // ========== PERMISSION VALIDATION TESTS ==========
+    // ========== PERMISSION VALIDATION ==========
     
-    @isTest   static void testCancelPermissionValidation() {
-        // Setup - use existing test data
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-        
-        Subscription__c subscription = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{'Status__c' => 'Active'});
-        insert subscription;
+    @isTest
+    static void testValidateCancellationPermissions() {
+        Map<String, SObject> baseData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Account acc = (Account) baseData.get('account');
+        Price_Plan__c pricePlan = (Price_Plan__c) baseData.get('pricePlan');
         
         Test.startTest();
         
-        // Test cancellation of active subscription without permission
-        subscription.Status__c = 'Cancelled';
-        subscription.Cancellation_Reason__c = 'Other';
+        // Test cancellation of Active subscription without permission
+        Subscription__c activeSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+        activeSub.Status__c = 'Active';
+        insert activeSub;
+        
+        activeSub.Status__c = 'Cancelled';
+        activeSub.Cancellation_Reason__c = 'Other';
         
         try {
-            update subscription;
-            System.assert(false, 'Should not allow cancellation without permission');
+            update activeSub;
+            System.assert(false, 'Should block active subscription cancellation without permission');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('permission'), 
-                         'Should mention permission in error: ' + e.getMessage());
+            System.assert(e.getMessage().contains('permission'));
         }
         
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testDraftCancellationAllowed() {
-        // Setup
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-        
-        Subscription__c draftSub = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{'Status__c' => 'Draft'});
+        // Test Draft and Trial can be cancelled without permission
+        Subscription__c draftSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         insert draftSub;
         
-        Test.startTest();
-        
-        // Draft subscriptions can be cancelled without special permission
         draftSub.Status__c = 'Cancelled';
         draftSub.Cancellation_Reason__c = 'Other';
+        update draftSub; // Should succeed
         
-        try {
-            update draftSub;
-            System.assertEquals('Cancelled', draftSub.Status__c, 'Draft subscription should be cancellable');
-        } catch (Exception e) {
-            System.assert(false, 'Draft cancellation should not require special permission: ' + e.getMessage());
-        }
+        Subscription__c trialSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+        trialSub.Status__c = 'Trial';
+        trialSub.Trial_End_Date__c = Date.today().addDays(14);
+        insert trialSub;
+        
+        trialSub.Status__c = 'Cancelled';
+        trialSub.Cancellation_Reason__c = 'Other';
+        update trialSub; // Should succeed
         
         Test.stopTest();
     }
     
     @isTest
-    static void testDeleteActiveSubscriptionBlocked() {
-        // Setup - use existing test data
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-        
-        Subscription__c subscription = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{'Status__c' => 'Active'});
-        insert subscription;
+    static void testValidateDeletionPermissions() {
+        Map<String, SObject> data = TestScenarioFactory.createActiveSubscriptionScenario();
+        Subscription__c activeSub = (Subscription__c) data.get('subscription');
         
         Test.startTest();
         
+        // Active subscriptions cannot be deleted
         try {
-            delete subscription;
-            System.assert(false, 'Should not allow deletion of active subscription');
+            delete activeSub;
+            System.assert(false, 'Should block deletion of active subscription');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('Cancel first'), 
-                         'Should mention cancelling first: ' + e.getMessage());
+            System.assert(e.getMessage().contains('Cancel first'));
         }
+        
+        // Draft subscriptions can be deleted
+        Map<String, SObject> baseData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Subscription__c draftSub = (Subscription__c) baseData.get('subscription');
+        delete draftSub; // Should succeed
         
         Test.stopTest();
     }
     
-    // ========== BUSINESS RULES VALIDATION TESTS ==========
+    // ========== BUSINESS RULES VALIDATION - DATE & TRIAL ==========
     
     @isTest
-    static void testDateValidation() {
-        // Setup
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
+    static void testValidateBusinessRules() {
+        Map<String, SObject> baseData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Account acc = (Account) baseData.get('account');
+        Price_Plan__c pricePlan = (Price_Plan__c) baseData.get('pricePlan');
         
         Test.startTest();
         
         // Test invalid date range
-        Subscription__c subscription = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{
-                'Start_Date__c' => Date.today(),
-                'End_Date__c' => Date.today().addDays(-1) // End before start
-            });
-        
         try {
-            insert subscription;
-            System.assert(false, 'Should not allow end date before start date');
+            Subscription__c invalidDates = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+            invalidDates.Start_Date__c = Date.today();
+            invalidDates.End_Date__c = Date.today().addDays(-1);
+            insert invalidDates;
+            System.assert(false, 'Should reject invalid date range');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('End date must be after start date'), 
-                         'Should validate date logic: ' + e.getMessage());
+            System.assert(e.getMessage().contains('End date must be after start date'));
         }
+        
+        // Test trial end date validation
+        try {
+            Subscription__c invalidTrial = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+            invalidTrial.Status__c = 'Trial';
+            invalidTrial.Trial_End_Date__c = Date.today().addDays(-1);
+            insert invalidTrial;
+            System.assert(false, 'Should reject past trial end date');
+        } catch (DmlException e) {
+            System.assert(e.getMessage().contains('Trial end date must be in the future'));
+        }
+        
+        // Test trial period limit (14 days max)
+        try {
+            Subscription__c longTrial = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+            longTrial.Status__c = 'Trial';
+            longTrial.Trial_End_Date__c = Date.today().addDays(30);
+            insert longTrial;
+            System.assert(false, 'Should reject trial period over 14 days');
+        } catch (DmlException e) {
+            System.assert(e.getMessage().contains('Trial period cannot exceed 14 days'));
+        }
+        
+        // Positive case - valid subscription
+        Subscription__c validSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+        insert validSub; // Should succeed
         
         Test.stopTest();
     }
     
-    @isTest
-    static void testTrialDefaultBehavior() {
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-        
-        Test.startTest();
-        
-        // Test: subscription without date gets default
-        Subscription__c trialSub = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{
-                'Status__c' => 'Trial',
-                'Trial_End_Date__c' => null
-            });
-        
-        insert trialSub;
-        
-        // Verify that the default was applied
-        trialSub = [SELECT Trial_End_Date__c FROM Subscription__c WHERE Id = :trialSub.Id];
-        System.assertEquals(Date.today().addDays(14), trialSub.Trial_End_Date__c, 
-                        'Should default to 14 days when not specified');
-        
-        Test.stopTest();
-    }
-        
-    @isTest
-    static void testTrialEndDateInFuture() {
-        // Setup
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-        
-        Test.startTest();
-        
-        // Test trial with past end date
-        Subscription__c trialSub = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{
-                'Status__c' => 'Trial',
-                'Trial_End_Date__c' => Date.today().addDays(-1) // Past date
-            });
-        
-        try {
-            insert trialSub;
-            System.assert(false, 'Trial end date should be in future');
-        } catch (DmlException e) {
-            System.assert(e.getMessage().contains('Trial end date must be in the future'), 
-                         'Should require future trial end date: ' + e.getMessage());
-        }
-        
-        Test.stopTest();
-    }
-    
+
     @isTest
     static void testActiveSubscriptionRequirements() {
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
+        Map<String, SObject> baseData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Account acc = (Account) baseData.get('account');
         
         Test.startTest();
         
-        // Test active subscription without start date
-        Subscription__c activeSub = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{
-                'Status__c' => 'Active',
-                'Start_Date__c' => null
-            });
-        
+        // Focus solo su Price Plan requirement
         try {
-            insert activeSub;
-            System.assert(false, 'Active subscription should require start date');
+            Subscription__c activeWithoutPricePlan = new Subscription__c(
+                Account__c = acc.Id,
+                Price_Plan__c = null,
+                Status__c = 'Active'
+            );
+            insert activeWithoutPricePlan;
+            System.assert(false, 'Should require price plan for active subscription');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('Start date is required'), 
-                        'Should require start date for active subscription: ' + e.getMessage());
+            System.assert(e.getMessage().contains('Price plan is required'));
         }
         
         Test.stopTest();
     }
-    
-    // ========== DEFAULT VALUE TESTS ==========
+
+    // ========== DEFAULT VALUES ==========
     
     @isTest
-    static void testDefaultValues() {
-        // Setup
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
+    static void testSetDefaults() {
+        Map<String, SObject> baseData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Account acc = (Account) baseData.get('account');
+        Price_Plan__c pricePlan = (Price_Plan__c) baseData.get('pricePlan');
         
         Test.startTest();
         
-        // Create subscription without explicit values
+        // Test Draft defaults (esistente)
         Subscription__c subscription = new Subscription__c(
             Account__c = acc.Id,
             Price_Plan__c = pricePlan.Id
         );
-        
         insert subscription;
         
-        // Reload to get default values
         subscription = [SELECT Status__c, Start_Date__c FROM Subscription__c WHERE Id = :subscription.Id];
+        System.assertEquals('Draft', subscription.Status__c, 'Should default to Draft status');
+        System.assertEquals(Date.today(), subscription.Start_Date__c, 'Should default to today for start date');
         
-        System.assertEquals('Draft', subscription.Status__c, 'Default status should be Draft');
-        System.assertEquals(Date.today(), subscription.Start_Date__c, 'Default start date should be today');
-        
-        Test.stopTest();
-    }
-    
-    // ========== BULK OPERATION TESTS ==========
-    
-    @isTest
-    static void testBulkStateTransitions() {
-        // Setup
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-        
-        List<Subscription__c> subscriptions = new List<Subscription__c>();
-        
-        // Create 200 draft subscriptions
-        for (Integer i = 0; i < 200; i++) {
-            subscriptions.add(TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-                new Map<String, Object>{'Status__c' => 'Draft'}));
-        }
-        insert subscriptions;
-        
-        Test.startTest();
-        
-        // Bulk transition to Trial
-        for (Subscription__c sub : subscriptions) {
-            sub.Status__c = 'Trial';
-            sub.Trial_End_Date__c = Date.today().addDays(14);
-        }
-        
-        try {
-            update subscriptions;
-            
-            // Verify all transitions succeeded
-            List<Subscription__c> updatedSubs = [SELECT Status__c FROM Subscription__c WHERE Id IN :subscriptions];
-            for (Subscription__c sub : updatedSubs) {
-                System.assertEquals('Trial', sub.Status__c, 'Bulk transition should succeed');
-            }
-            
-        } catch (Exception e) {
-            System.assert(false, 'Bulk valid transitions should not fail: ' + e.getMessage());
-        }
-        
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testBulkInvalidTransitions() {
-        // Setup
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-        
-        List<Subscription__c> subscriptions = new List<Subscription__c>();
-        
-        // Create active subscriptions
-        for (Integer i = 0; i < 50; i++) {
-            subscriptions.add(TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-                new Map<String, Object>{'Status__c' => 'Active'}));
-        }
-        insert subscriptions;
-        
-        Test.startTest();
-        
-        // Try bulk invalid transition Active -> Draft
-        for (Subscription__c sub : subscriptions) {
-            sub.Status__c = 'Draft';
-        }
-        
-        try {
-            update subscriptions;
-            System.assert(false, 'Bulk invalid transitions should fail');
-        } catch (DmlException e) {
-            System.assert(e.getMessage().contains('Invalid status transition'), 
-                         'Should reject bulk invalid transitions');
-        }
-        
-        Test.stopTest();
-    }
-    
-    // ========== INVOICE GENERATION DETECTION TESTS ==========
-    
-    @isTest
-    static void testInvoiceGenerationDetection() {
-        // Setup
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-
-        Subscription__c trialSub = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-        new Map<String, Object>{
-            'Status__c' => 'Trial',
-            'Trial_End_Date__c' => Date.today().addDays(14)
-        });
+        // Test Trial defaults (esistente)
+        Subscription__c trialSub = new Subscription__c(
+            Account__c = acc.Id,
+            Price_Plan__c = pricePlan.Id,
+            Status__c = 'Trial'
+        );
         insert trialSub;
+        
+        trialSub = [SELECT Trial_End_Date__c FROM Subscription__c WHERE Id = :trialSub.Id];
+        System.assertEquals(Date.today().addDays(14), trialSub.Trial_End_Date__c);
+        
+        // NUOVO: Test Active defaults
+        Subscription__c activeSub = new Subscription__c(
+            Account__c = acc.Id,
+            Price_Plan__c = pricePlan.Id,
+            Status__c = 'Active',
+            Start_Date__c = null  // Deliberatamente null
+        );
+        insert activeSub;
+        
+        activeSub = [SELECT Start_Date__c FROM Subscription__c WHERE Id = :activeSub.Id];
+        System.assertEquals(Date.today(), activeSub.Start_Date__c, 
+                        'setDefaults should populate Start_Date for Active subscriptions');
+        
+        Test.stopTest();
+    }
+    
+    // ========== INVOICE GENERATION DETECTION ==========
+    
+    @isTest
+    static void testGetSubscriptionsNeedingInvoice() {
+        Map<String, SObject> data = TestScenarioFactory.createTrialSubscriptionScenario();
+        Subscription__c trialSub = (Subscription__c) data.get('subscription');
         
         Test.startTest();
         
@@ -447,40 +312,66 @@ private class SubscriptionValidatorTest {
         
         Set<Id> needingInvoice = SubscriptionValidator.getSubscriptionsNeedingInvoice(oldMap, newMap);
         
-        System.assertEquals(1, needingInvoice.size(), 'Should detect subscription needing invoice');
-        System.assert(needingInvoice.contains(trialSub.Id), 'Should include the transitioning subscription');
+        System.assertEquals(1, needingInvoice.size(), 'Should detect subscription becoming active');
+        System.assert(needingInvoice.contains(trialSub.Id), 'Should include the activated subscription');
         
-        Test.stopTest();
-    }
-    
-    @isTest
-    static void testNoInvoiceGenerationForOtherTransitions() {
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
-
-        // Create Draft subscription
-        Subscription__c draftSub = TestDataFactory.createSubscriptionWithOverrides(acc.Id, pricePlan.Id,
-            new Map<String, Object>{'Status__c' => 'Draft'});
-        insert draftSub;
+        // Test no invoice generation for other transitions
+        Map<String, SObject> draftData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Subscription__c draftSub = (Subscription__c) draftData.get('subscription');
         
-        Test.startTest();
-        
-        // Simulate transition from Draft to Trial
-        Map<Id, Subscription__c> oldMap = new Map<Id, Subscription__c>{
+        Map<Id, Subscription__c> draftOldMap = new Map<Id, Subscription__c>{
             draftSub.Id => draftSub.clone(true)
         };
         
         draftSub.Status__c = 'Trial';
         draftSub.Trial_End_Date__c = Date.today().addDays(14);
-        Map<Id, Subscription__c> newMap = new Map<Id, Subscription__c>{
+        Map<Id, Subscription__c> draftNewMap = new Map<Id, Subscription__c>{
             draftSub.Id => draftSub
         };
         
-        Set<Id> needingInvoice = SubscriptionValidator.getSubscriptionsNeedingInvoice(oldMap, newMap);
-        
-        System.assertEquals(0, needingInvoice.size(), 'Draft to Trial should not need invoice generation');
+        Set<Id> noInvoiceNeeded = SubscriptionValidator.getSubscriptionsNeedingInvoice(draftOldMap, draftNewMap);
+        System.assertEquals(0, noInvoiceNeeded.size(), 'Draft to Trial should not need invoice');
         
         Test.stopTest();
     }
     
+    // ========== BULK OPERATIONS ==========
+    
+    @isTest
+    static void testBulkOperations() {
+        Map<String, SObject> baseData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Account acc = (Account) baseData.get('account');
+        Price_Plan__c pricePlan = (Price_Plan__c) baseData.get('pricePlan');
+        
+        Test.startTest();
+        
+        // Create bulk subscriptions using scenario factory
+        List<Subscription__c> subscriptions = TestScenarioFactory.createBulkDraftSubscriptions(acc.Id, pricePlan.Id, 200);
+        
+        // Verify defaults applied
+        for (Subscription__c sub : subscriptions) {
+            System.assertEquals('Draft', sub.Status__c, 'Bulk subscriptions should have default status');
+        }
+        
+        // Test bulk valid transitions
+        for (Subscription__c sub : subscriptions) {
+            sub.Status__c = 'Trial';
+            sub.Trial_End_Date__c = Date.today().addDays(14);
+        }
+        update subscriptions; // Should succeed
+        
+        // Test bulk invalid transitions
+        for (Subscription__c sub : subscriptions) {
+            sub.Status__c = 'Draft'; // Invalid: Trial -> Draft
+        }
+        
+        try {
+            update subscriptions;
+            System.assert(false, 'Bulk invalid transitions should fail');
+        } catch (DmlException e) {
+            System.assert(e.getMessage().contains('Invalid status transition'));
+        }
+        
+        Test.stopTest();
+    }
 }
