@@ -1,225 +1,153 @@
 /**
- * @description Trigger handler for Subscription__c object - Orchestrator pattern
+ * @description Orchestrates Subscription trigger events using validator pattern
  * @author Antonio Franco
  * @date 2025-09-09
  * @story STORY-003: Trigger Framework
- * @pattern Thin Handler + Validator separation of concerns
  */
 public class SubscriptionTriggerHandler implements IHandler {
     
-    // ========== TRIGGER FRAMEWORK INTERFACE METHODS ==========
-    
-    /**
-     * @description Before Insert handler
-     * @param newRecords List of new Subscription records
-     */
     public void beforeInsert(List<SObject> newRecords) {
-        System.debug('SubscriptionTriggerHandler.beforeInsert: Processing ' + newRecords.size() + ' records');
-        
         List<Subscription__c> subscriptions = (List<Subscription__c>) newRecords;
         
-        // Set defaults for new subscriptions
         SubscriptionValidator.setDefaults(subscriptions);
-        
-        // Validate business rules
         SubscriptionValidator.validateBusinessRules(subscriptions, false);
-        
-        System.debug('SubscriptionTriggerHandler.beforeInsert: Completed');
     }
     
-    /**
-     * @description Before Update handler
-     * @param oldMap Map of old Subscription records
-     * @param newMap Map of new Subscription records
-     */
     public void beforeUpdate(Map<Id, SObject> oldMap, Map<Id, SObject> newMap) {
-        System.debug('SubscriptionTriggerHandler.beforeUpdate: Processing ' + newMap.size() + ' records');
-        
+        List<Subscription__c> subscriptions = (List<Subscription__c>) newMap.values();
         Map<Id, Subscription__c> oldSubscriptions = (Map<Id, Subscription__c>) oldMap;
-        Map<Id, Subscription__c> newSubscriptions = (Map<Id, Subscription__c>) newMap;
-        List<Subscription__c> subscriptionsList = newSubscriptions.values();
         
-        // Validate state transitions
-        SubscriptionValidator.validateStateTransitions(oldSubscriptions, newSubscriptions);
-        
-        // Check user permissions for status changes
-        SubscriptionValidator.validateCancellationPermissions(oldSubscriptions, newSubscriptions);
-        
-        // Validate business rules
-        SubscriptionValidator.validateBusinessRules(subscriptionsList, true);
-        
-        System.debug('SubscriptionTriggerHandler.beforeUpdate: Completed');
+        SubscriptionValidator.validateStateTransitions(oldSubscriptions, (Map<Id, Subscription__c>) newMap);
+        SubscriptionValidator.validateCancellationPermissions(oldSubscriptions, (Map<Id, Subscription__c>) newMap);
+        SubscriptionValidator.validateBusinessRules(subscriptions, true);
     }
     
-    /**
-     * @description Before Delete handler
-     * @param oldMap Map of old Subscription records being deleted
-     */
     public void beforeDelete(Map<Id, SObject> oldMap) {
-        System.debug('SubscriptionTriggerHandler.beforeDelete: Processing ' + oldMap.size() + ' records');
-        
         List<Subscription__c> subscriptions = (List<Subscription__c>) oldMap.values();
         
-        // Validate user permissions for deletion
         SubscriptionValidator.validateDeletionPermissions(subscriptions);
-        
-        System.debug('SubscriptionTriggerHandler.beforeDelete: Completed');
     }
     
-    /**
-     * @description After Insert handler
-     * @param newMap Map of new Subscription records
-     */
     public void afterInsert(Map<Id, SObject> newMap) {
-        System.debug('SubscriptionTriggerHandler.afterInsert: Processing ' + newMap.size() + ' records');
+        List<Subscription__c> subscriptions = (List<Subscription__c>) newMap.values();
         
-        // Future enhancement: Create welcome tasks, send notifications, etc.
-        handlePostInsertActions((Map<Id, Subscription__c>) newMap);
-        
-        System.debug('SubscriptionTriggerHandler.afterInsert: Completed');
+        handleNewSubscriptions(subscriptions);
+        updateAccountSubscriptionStats(subscriptions);
     }
     
-    /**
-     * @description After Update handler
-     * @param oldMap Map of old Subscription records
-     * @param newMap Map of new Subscription records
-     */
     public void afterUpdate(Map<Id, SObject> oldMap, Map<Id, SObject> newMap) {
-        System.debug('SubscriptionTriggerHandler.afterUpdate: Processing ' + newMap.size() + ' records');
-        
         Map<Id, Subscription__c> oldSubscriptions = (Map<Id, Subscription__c>) oldMap;
         Map<Id, Subscription__c> newSubscriptions = (Map<Id, Subscription__c>) newMap;
         
-        // Handle invoice generation for newly active subscriptions
-        handleInvoiceGeneration(oldSubscriptions, newSubscriptions);
+        handleStatusTransitions(oldSubscriptions, newSubscriptions);
+        updateAccountSubscriptionStats((List<Subscription__c>) newMap.values());
         
-        // Handle other post-update actions
-        handlePostUpdateActions(oldSubscriptions, newSubscriptions);
-        
-        System.debug('SubscriptionTriggerHandler.afterUpdate: Completed');
+        Set<Id> needingInvoice = SubscriptionValidator.getSubscriptionsNeedingInvoice(oldSubscriptions, newSubscriptions);
+        if (!needingInvoice.isEmpty()) {
+            queueInvoiceGeneration(needingInvoice);
+        }
     }
     
-    /**
-     * @description After Delete handler
-     * @param oldMap Map of deleted Subscription records
-     */
     public void afterDelete(Map<Id, SObject> oldMap) {
-        System.debug('SubscriptionTriggerHandler.afterDelete: Processing ' + oldMap.size() + ' records');
+        List<Subscription__c> subscriptions = (List<Subscription__c>) oldMap.values();
         
-        // Future enhancement: Cleanup related records, send notifications, etc.
-        handlePostDeleteActions((Map<Id, Subscription__c>) oldMap);
-        
-        System.debug('SubscriptionTriggerHandler.afterDelete: Completed');
+        handleDeletedSubscriptions(subscriptions);
+        updateAccountSubscriptionStats(subscriptions);
     }
     
-    /**
-     * @description After Undelete handler
-     * @param newMap Map of undeleted Subscription records
-     */
     public void afterUndelete(Map<Id, SObject> newMap) {
-        System.debug('SubscriptionTriggerHandler.afterUndelete: Processing ' + newMap.size() + ' records');
+        List<Subscription__c> subscriptions = (List<Subscription__c>) newMap.values();
         
-        // Future enhancement: Restore related data, send notifications, etc.
-        handlePostUndeleteActions((Map<Id, Subscription__c>) newMap);
-        
-        System.debug('SubscriptionTriggerHandler.afterUndelete: Completed');
+        handleUndeletedSubscriptions(subscriptions);
+        updateAccountSubscriptionStats(subscriptions);
     }
     
-    // ========== PRIVATE HELPER METHODS ==========
-    
-    
-    /**
-     * @description Handles invoice generation for subscriptions becoming active
-     * @param oldSubscriptions Map of old subscription records
-     * @param newSubscriptions Map of new subscription records
+    /*
+     * @description Processes subscriptions based on status changes and routes to appropriate handlers
+     * @param oldSubscriptions Map of subscription records before update
+     * @param newSubscriptions Map of subscription records after update
      */
-    private void handleInvoiceGeneration(Map<Id, Subscription__c> oldSubscriptions,
+    private void handleStatusTransitions(Map<Id, Subscription__c> oldSubscriptions, 
                                        Map<Id, Subscription__c> newSubscriptions) {
         
-        Set<Id> subscriptionsNeedingInvoice = SubscriptionValidator.getSubscriptionsNeedingInvoice(
-            oldSubscriptions, 
-            newSubscriptions
-        );
+        List<Subscription__c> activatedSubs = new List<Subscription__c>();
+        List<Subscription__c> cancelledSubs = new List<Subscription__c>();
+        List<Subscription__c> suspendedSubs = new List<Subscription__c>();
         
-        if (!subscriptionsNeedingInvoice.isEmpty()) {
-            System.debug('Subscriptions needing invoice generation: ' + subscriptionsNeedingInvoice);
+        for (Id subId : newSubscriptions.keySet()) {
+            Subscription__c oldSub = oldSubscriptions.get(subId);
+            Subscription__c newSub = newSubscriptions.get(subId);
             
-            // TODO: Implement in STORY-005 - Invoice Generation Engine
-            // For now, just log the IDs that need processing
-            // Future: Call InvoiceService.generateInvoicesForSubscriptions(subscriptionsNeedingInvoice);
-            
-            // Prepare data for future implementation
-            storeSubscriptionsForInvoiceGeneration(subscriptionsNeedingInvoice);
+            if (oldSub.Status__c != newSub.Status__c) {
+                switch on newSub.Status__c {
+                    when 'Active' { activatedSubs.add(newSub); }
+                    when 'Cancelled' { cancelledSubs.add(newSub); }
+                    when 'Suspended' { suspendedSubs.add(newSub); }
+                }
+            }
+        }
+        
+        handleActivatedSubscriptions(activatedSubs);
+        handleCancelledSubscriptions(cancelledSubs);
+        handleSuspendedSubscriptions(suspendedSubs);
+    }
+    
+    private void handleActivatedSubscriptions(List<Subscription__c> activatedSubs) {
+        if (!activatedSubs.isEmpty()) {
+            System.debug('Processing ' + activatedSubs.size() + ' activated subscriptions');
+            // TODO: STORY-018 - Welcome email automation
+            // TODO: STORY-019 - Provision service access
         }
     }
     
-    /**
-     * @description Handles post-insert actions
-     * @param newSubscriptions Map of newly inserted subscriptions
-     */
-    private void handlePostInsertActions(Map<Id, Subscription__c> newSubscriptions) {
-        // Future enhancements:
-        // - Create welcome tasks
-        // - Send confirmation emails
-        // - Log to audit trail
-        
-        System.debug('Post-insert actions placeholder for ' + newSubscriptions.size() + ' subscriptions');
-    }
-    
-    /**
-     * @description Handles post-update actions
-     * @param oldSubscriptions Map of old subscription records
-     * @param newSubscriptions Map of new subscription records
-     */
-    private void handlePostUpdateActions(Map<Id, Subscription__c> oldSubscriptions,
-                                       Map<Id, Subscription__c> newSubscriptions) {
-        // Future enhancements:
-        // - Send status change notifications
-        // - Update related cases
-        // - Platform events publishing
-        
-        System.debug('Post-update actions placeholder for ' + newSubscriptions.size() + ' subscriptions');
-    }
-    
-    /**
-     * @description Handles post-delete actions
-     * @param deletedSubscriptions Map of deleted subscription records
-     */
-    private void handlePostDeleteActions(Map<Id, Subscription__c> deletedSubscriptions) {
-        // Future enhancements:
-        // - Archive related data
-        // - Send deletion confirmations
-        // - Update analytics
-        
-        System.debug('Post-delete actions placeholder for ' + deletedSubscriptions.size() + ' subscriptions');
-    }
-    
-    /**
-     * @description Handles post-undelete actions
-     * @param undeletedSubscriptions Map of undeleted subscription records
-     */
-    private void handlePostUndeleteActions(Map<Id, Subscription__c> undeletedSubscriptions) {
-        // Future enhancements:
-        // - Restore related data
-        // - Send restoration notifications
-        
-        System.debug('Post-undelete actions placeholder for ' + undeletedSubscriptions.size() + ' subscriptions');
-    }
-    
-    /**
-     * @description Temporary method to store subscription IDs for future invoice generation
-     * @param subscriptionIds Set of subscription IDs needing invoice generation
-     */
-    private void storeSubscriptionsForInvoiceGeneration(Set<Id> subscriptionIds) {
-        // TODO: Remove this method in STORY-005 when InvoiceService is implemented
-        // For now, just log the IDs that would be processed
-        
-        System.debug('=== INVOICE GENERATION QUEUE ===');
-        for (Id subId : subscriptionIds) {
-            System.debug('Subscription ' + subId + ' needs invoice generation');
+    private void handleCancelledSubscriptions(List<Subscription__c> cancelledSubs) {
+        if (!cancelledSubs.isEmpty()) {
+            System.debug('Processing ' + cancelledSubs.size() + ' cancelled subscriptions');
+            // TODO: STORY-020 - Exit survey automation
+            // TODO: STORY-021 - Deprovision service access
         }
-        System.debug('=== END INVOICE GENERATION QUEUE ===');
-        
-        // Future: Store in custom setting or platform event for async processing
+    }
+    
+    private void handleSuspendedSubscriptions(List<Subscription__c> suspendedSubs) {
+        if (!suspendedSubs.isEmpty()) {
+            System.debug('Processing ' + suspendedSubs.size() + ' suspended subscriptions');
+            // TODO: STORY-022 - Dunning workflow integration
+            // TODO: STORY-023 - Partial service limitation
+        }
+    }
+    
+    private void handleNewSubscriptions(List<Subscription__c> newSubscriptions) {
+        if (!newSubscriptions.isEmpty()) {
+            System.debug('Processing ' + newSubscriptions.size() + ' new subscriptions');
+            // TODO: STORY-024 - Subscription analytics tracking
+        }
+    }
+    
+    private void handleDeletedSubscriptions(List<Subscription__c> deletedSubscriptions) {
+        if (!deletedSubscriptions.isEmpty()) {
+            System.debug('Processing ' + deletedSubscriptions.size() + ' deleted subscriptions');
+            // TODO: STORY-025 - Clean up related data
+        }
+    }
+    
+    private void handleUndeletedSubscriptions(List<Subscription__c> undeletedSubscriptions) {
+        if (!undeletedSubscriptions.isEmpty()) {
+            System.debug('Processing ' + undeletedSubscriptions.size() + ' undeleted subscriptions');
+            // TODO: STORY-026 - Restore related data
+        }
+    }
+    
+    private void updateAccountSubscriptionStats(List<Subscription__c> subscriptions) {
+        if (!subscriptions.isEmpty()) {
+            System.debug('Updating account subscription stats for ' + subscriptions.size() + ' subscriptions');
+            // TODO: STORY-027 - Real-time subscription metrics
+        }
+    }
+    
+    private void queueInvoiceGeneration(Set<Id> subscriptionIds) {
+        if (!subscriptionIds.isEmpty()) {
+            System.debug('Queuing invoice generation for ' + subscriptionIds.size() + ' subscriptions');
+            // TODO: STORY-028 - Automated billing system integration
+        }
     }
 }

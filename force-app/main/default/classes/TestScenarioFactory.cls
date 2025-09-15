@@ -3,29 +3,16 @@
  * @author Antonio Franco  
  * @date 2025-09-12
  * @story STORY-005: Test Data Refactoring
- * @pattern Domain-specific scenarios reflecting real business workflows
  */
 @isTest
 public class TestScenarioFactory {
     
-    // ========== INVOICE SCENARIOS ==========
-    
-    /**
-     * @description Creates draft invoice ready for line items
-     * @param accountId Account to associate with
-     * @return Inserted Invoice__c in Draft status
-     */
     public static Invoice__c createDraftInvoice(Id accountId) {
         Invoice__c invoice = TestDataFactory.createInvoice(accountId);
         insert invoice;
         return invoice;
     }
     
-    /**
-     * @description Creates invoice with line items (positive subtotal)
-     * @param accountId Account to associate with
-     * @return Inserted Invoice__c with line items
-     */
     public static Invoice__c createInvoiceWithLineItems(Id accountId) {
         Invoice__c invoice = TestDataFactory.createInvoice(accountId);
         insert invoice;
@@ -36,7 +23,7 @@ public class TestScenarioFactory {
         return invoice;
     }
     
-    /**
+    /*
      * @description Creates sent invoice (realistic workflow: Draft → line items → Sent)
      * @param accountId Account to associate with
      * @return Inserted Invoice__c in Sent status with line items
@@ -50,11 +37,6 @@ public class TestScenarioFactory {
         return invoice;
     }
     
-    /**
-     * @description Creates paid invoice (zero balance due)
-     * @param accountId Account to associate with
-     * @return Inserted Invoice__c in Paid status
-     */
     public static Invoice__c createPaidInvoice(Id accountId) {
         Invoice__c invoice = createSentInvoice(accountId);
         
@@ -65,11 +47,6 @@ public class TestScenarioFactory {
         return invoice;
     }
     
-    /**
-     * @description Creates voided invoice
-     * @param accountId Account to associate with
-     * @return Inserted Invoice__c in Voided status
-     */
     public static Invoice__c createVoidedInvoice(Id accountId) {
         Invoice__c invoice = TestDataFactory.createInvoice(accountId);
         insert invoice;
@@ -80,15 +57,9 @@ public class TestScenarioFactory {
         return invoice;
     }
     
-    /**
-     * @description Creates overdue invoice
-     * @param accountId Account to associate with
-     * @return Inserted Invoice__c in Overdue status
-     */
     public static Invoice__c createOverdueInvoice(Id accountId) {
         Invoice__c invoice = createSentInvoice(accountId);
         
-        // Set due date in past and mark overdue
         invoice.Due_Date__c = Date.today().addDays(-5);
         invoice.Status__c = 'Overdue';
         update invoice;
@@ -96,7 +67,7 @@ public class TestScenarioFactory {
         return invoice;
     }
     
-    /**
+    /*
      * @description Creates invoices for multiple countries (tax testing)
      * @param countries List of country names for billing addresses
      * @return Map<Country, Invoice__c> - inserted invoices by country
@@ -104,14 +75,12 @@ public class TestScenarioFactory {
     public static Map<String, Invoice__c> createMultiCountryInvoices(List<String> countries) {
         Map<String, Invoice__c> invoicesByCountry = new Map<String, Invoice__c>();
         
-        // Create accounts for each country
         List<Account> accounts = new List<Account>();
         for (String country : countries) {
             accounts.add(TestDataFactory.createAccountForCountry(country));
         }
         insert accounts;
         
-        // Create invoices
         List<Invoice__c> invoices = new List<Invoice__c>();
         for (Integer i = 0; i < accounts.size(); i++) {
             Invoice__c invoice = TestDataFactory.createInvoice(accounts[i].Id);
@@ -123,9 +92,7 @@ public class TestScenarioFactory {
         return invoicesByCountry;
     }
     
-    // ========== SUBSCRIPTION SCENARIOS ==========
-    
-    /**
+    /*
      * @description Creates complete subscription setup (all dependencies)
      * @return Map with 'account', 'product', 'pricePlan', 'subscription'
      */
@@ -150,10 +117,6 @@ public class TestScenarioFactory {
         };
     }
     
-    /**
-     * @description Creates trial subscription
-     * @return Map with subscription data in Trial status
-     */
     public static Map<String, SObject> createTrialSubscriptionScenario() {
         Map<String, SObject> data = createCompleteSubscriptionSetup();
         
@@ -165,10 +128,6 @@ public class TestScenarioFactory {
         return data;
     }
     
-    /**
-     * @description Creates active subscription
-     * @return Map with subscription data in Active status
-     */
     public static Map<String, SObject> createActiveSubscriptionScenario() {
         Map<String, SObject> data = createCompleteSubscriptionSetup();
         
@@ -179,16 +138,10 @@ public class TestScenarioFactory {
         return data;
     }
     
-    /**
-     * @description Creates cancelled subscription
-     * @return Map with subscription data in Cancelled status
-     */
     public static Map<String, SObject> createCancelledSubscriptionScenario() {
-        // Start from Draft instead of Active
         Map<String, SObject> data = createCompleteSubscriptionSetup();
         
         Subscription__c subscription = (Subscription__c) data.get('subscription');
-        // Cancel Draft subscription (no special permission needed)
         subscription.Status__c = 'Cancelled';
         subscription.Cancellation_Reason__c = 'Other';
         update subscription;
@@ -196,9 +149,7 @@ public class TestScenarioFactory {
         return data;
     }
     
-    // ========== BULK SCENARIOS ==========
-    
-    /**
+    /*
      * @description Creates bulk invoices for performance testing
      * @param accountId Account to associate with
      * @param count Number of invoices to create
@@ -215,7 +166,7 @@ public class TestScenarioFactory {
         return invoices;
     }
     
-    /**
+    /*
      * @description Creates bulk subscriptions for performance testing
      * @param accountId Account to associate with
      * @param pricePlanId Price Plan to associate with
@@ -233,15 +184,51 @@ public class TestScenarioFactory {
         return subscriptions;
     }
     
-    // ========== VALIDATION TESTING SCENARIOS ==========
+    public static Invoice__c createOrphanInvoice() {
+        Invoice__c invoice = new Invoice__c(
+            Status__c = 'Draft',
+            Invoice_Date__c = Date.today(),
+            Due_Date__c = Date.today().addDays(30)
+        );
+        insert invoice;
+        return invoice;
+    }
     
-    /**
+    /*
+     * @description Creates mixed status bulk invoices for complex testing
+     * @param accountId Account to associate with
+     * @return Map<Status, List<Invoice__c>> with 50 of each status
+     */
+    public static Map<String, List<Invoice__c>> createMixedStatusBulkInvoices(Id accountId) {
+        Map<String, List<Invoice__c>> invoicesByStatus = new Map<String, List<Invoice__c>>();
+        List<String> statuses = new List<String>{'Draft', 'Sent', 'Paid', 'Overdue'};
+        
+        for (String status : statuses) {
+            List<Invoice__c> statusInvoices = new List<Invoice__c>();
+            for (Integer i = 0; i < 50; i++) {
+                Invoice__c inv = TestDataFactory.createInvoice(accountId);
+                if (status != 'Draft') {
+                    inv.Status__c = status;
+                    if (status == 'Paid') {
+                        inv.Balance_Due__c = 0.0;
+                    } else if (status == 'Overdue') {
+                        inv.Due_Date__c = Date.today().addDays(-5);
+                    }
+                }
+                statusInvoices.add(inv);
+            }
+            insert statusInvoices;
+            invoicesByStatus.put(status, statusInvoices);
+        }
+        return invoicesByStatus;
+    }
+    
+    /*
      * @description Creates invoices for recalculation testing
      * @param accountId Account to associate with  
      * @return Map with 'sent', 'paid', 'draft' invoices
      */
     public static Map<String, Invoice__c> createInvoicesForRecalculationTesting(Id accountId) {
-        // Create all as Draft first
         List<Invoice__c> invoices = new List<Invoice__c>{
             TestDataFactory.createInvoice(accountId),
             TestDataFactory.createInvoice(accountId), 
@@ -249,14 +236,12 @@ public class TestScenarioFactory {
         };
         insert invoices;
         
-        // Add line items to first two
         List<Invoice_Line_Item__c> lineItems = new List<Invoice_Line_Item__c>{
             TestDataFactory.createInvoiceLineItem(invoices[0].Id),
             TestDataFactory.createInvoiceLineItem(invoices[1].Id)
         };
         insert lineItems;
         
-        // Update statuses
         invoices[0].Status__c = 'Sent';
         invoices[1].Status__c = 'Paid';
         invoices[1].Balance_Due__c = 0.0;
@@ -269,7 +254,7 @@ public class TestScenarioFactory {
         };
     }
     
-    /**
+    /*
      * @description Creates subscription state transition data for testing
      * @return Map with subscriptions in different states
      */
@@ -278,24 +263,19 @@ public class TestScenarioFactory {
         Account acc = (Account) baseData.get('account');
         Price_Plan__c pricePlan = (Price_Plan__c) baseData.get('pricePlan');
         
-        // Create subscriptions in different states
         List<Subscription__c> subscriptions = new List<Subscription__c>();
         
-        // Draft subscription
         subscriptions.add(TestDataFactory.createSubscription(acc.Id, pricePlan.Id));
         
-        // Trial subscription  
         Subscription__c trialSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         trialSub.Status__c = 'Trial';
         trialSub.Trial_End_Date__c = Date.today().addDays(14);
         subscriptions.add(trialSub);
         
-        // Active subscription
         Subscription__c activeSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         activeSub.Status__c = 'Active';
         subscriptions.add(activeSub);
         
-        // Suspended subscription
         Subscription__c suspendedSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         suspendedSub.Status__c = 'Suspended';
         suspendedSub.Cancellation_Reason__c = 'Budget Constraints';
@@ -311,9 +291,7 @@ public class TestScenarioFactory {
         return baseData;
     }
     
-    // ========== PERMISSION TESTING SCENARIOS ==========
-    
-    /**
+    /*
      * @description Creates invoices for permission testing scenarios
      * @param accountId Account to associate with
      * @return Map with 'paid', 'voided', 'draft' invoices for permission tests

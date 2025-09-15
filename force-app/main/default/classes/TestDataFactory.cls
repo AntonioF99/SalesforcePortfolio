@@ -3,19 +3,12 @@
  * @author Antonio Franco
  * @date 2025-09-12
  * @story STORY-005: Test Data Refactoring
- * @pattern Clean Factory - no overrides, no insertions, clear intent
  */
 @isTest
 public class TestDataFactory {
     
     private static Integer counter = 0;
     
-    // ========== ACCOUNT METHODS ==========
-    
-    /**
-     * @description Creates basic Account with Italian billing address
-     * @return Account record (not inserted)
-     */
     public static Account createAccount() {
         counter++;
         String uniqueId = String.valueOf(System.currentTimeMillis() + counter);
@@ -31,7 +24,7 @@ public class TestDataFactory {
         );
     }
     
-    /**
+    /*
      * @description Creates Account for specific country (tax testing)
      * @param country Billing country for tax calculation
      * @return Account record (not inserted)
@@ -77,12 +70,6 @@ public class TestDataFactory {
         return acc;
     }
     
-    // ========== PRODUCT METHODS ==========
-    
-    /**
-     * @description Creates basic Product
-     * @return Product__c record (not inserted)
-     */
     public static Product__c createProduct() {
         counter++;
         String uniqueId = String.valueOf(System.currentTimeMillis() + counter);
@@ -96,13 +83,6 @@ public class TestDataFactory {
         );
     }
     
-    // ========== PRICE PLAN METHODS ==========
-    
-    /**
-     * @description Creates basic Price Plan
-     * @param productId Product to associate with
-     * @return Price_Plan__c record (not inserted)
-     */
     public static Price_Plan__c createPricePlan(Id productId) {
         counter++;
         
@@ -116,14 +96,6 @@ public class TestDataFactory {
         );
     }
     
-    // ========== SUBSCRIPTION METHODS ==========
-    
-    /**
-     * @description Creates basic Subscription in Draft status
-     * @param accountId Account to associate with
-     * @param pricePlanId Price Plan to associate with
-     * @return Subscription__c record (not inserted)
-     */
     public static Subscription__c createSubscription(Id accountId, Id pricePlanId) {
         return new Subscription__c(
             Account__c = accountId,
@@ -134,13 +106,6 @@ public class TestDataFactory {
         );
     }
     
-    // ========== INVOICE METHODS ==========
-    
-    /**
-     * @description Creates basic Invoice in Draft status
-     * @param accountId Account to associate with
-     * @return Invoice__c record (not inserted)
-     */
     public static Invoice__c createInvoice(Id accountId) {
         return new Invoice__c(
             Account__c = accountId,
@@ -151,11 +116,6 @@ public class TestDataFactory {
         );
     }
     
-    /**
-     * @description Creates Invoice with invalid dates for validation testing
-     * @param accountId Account to associate with
-     * @return Invoice__c record with invalid dates (not inserted)
-     */
     public static Invoice__c createInvoiceWithInvalidDates(Id accountId) {
         Invoice__c invoice = createInvoice(accountId);
         invoice.Invoice_Date__c = Date.today();
@@ -163,24 +123,12 @@ public class TestDataFactory {
         return invoice;
     }
     
-    /**
-     * @description Creates Invoice with negative balance for validation testing
-     * @param accountId Account to associate with
-     * @return Invoice__c record with negative balance (not inserted)
-     */
     public static Invoice__c createInvoiceWithNegativeBalance(Id accountId) {
         Invoice__c invoice = createInvoice(accountId);
         invoice.Balance_Due__c = -100.00;
         return invoice;
     }
     
-    // ========== INVOICE LINE ITEM METHODS ==========
-    
-    /**
-     * @description Creates basic Invoice Line Item
-     * @param invoiceId Invoice to associate with
-     * @return Invoice_Line_Item__c record (not inserted)
-     */
     public static Invoice_Line_Item__c createInvoiceLineItem(Id invoiceId) {
         counter++;
         
@@ -193,7 +141,7 @@ public class TestDataFactory {
         );
     }
     
-    /**
+    /*
      * @description Creates Invoice Line Item with custom amount
      * @param invoiceId Invoice to associate with  
      * @param unitPrice Unit price for the line item
@@ -205,12 +153,6 @@ public class TestDataFactory {
         return lineItem;
     }
     
-    // ========== UTILITY METHODS ==========
-    
-    /**
-     * @description Gets unique counter for naming
-     * @return Incremented counter value
-     */
     public static Integer getUniqueCounter() {
         return ++counter;
     }
