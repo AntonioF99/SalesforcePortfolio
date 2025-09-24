@@ -80,13 +80,33 @@ private class InvoiceValidatorTest {
             System.assert(e.getMessage().contains('Due date cannot be before invoice date'));
         }
         
-        // Test negative amounts validation
+        // Test negative amounts validation - Balance Due
         try {
             Invoice__c negativeBalance = TestDataFactory.createInvoiceWithNegativeBalance(acc.Id);
             insert negativeBalance;
             System.assert(false, 'Should reject negative balance');
         } catch (DmlException e) {
             System.assert(e.getMessage().contains('Balance due cannot be negative'));
+        }
+        
+        // Test negative amounts validation - Subtotal
+        try {
+            Invoice__c negativeSubtotal = TestDataFactory.createInvoice(acc.Id);
+            negativeSubtotal.Subtotal__c = -100.0;
+            insert negativeSubtotal;
+            System.assert(false, 'Should reject negative subtotal');
+        } catch (DmlException e) {
+            System.assert(e.getMessage().contains('Invoice subtotal cannot be negative'));
+        }
+        
+        // Test negative amounts validation - Tax Amount  
+        try {
+            Invoice__c negativeTax = TestDataFactory.createInvoice(acc.Id);
+            negativeTax.Tax_Amount__c = -25.0;
+            insert negativeTax;
+            System.assert(false, 'Should reject negative tax amount');
+        } catch (DmlException e) {
+            System.assert(e.getMessage().contains('Tax amount cannot be negative'));
         }
         
         // Test status-specific validations - Sent without subtotal
@@ -139,18 +159,40 @@ private class InvoiceValidatorTest {
         Account testAcc = TestDataFactory.createAccountForCountry(null);
         insert testAcc;
         
-        Invoice__c invoice = new Invoice__c(Account__c = testAcc.Id);
-        insert invoice;
+        // Test complete default scenario - all null/blank values
+        Invoice__c invoiceAllDefaults = new Invoice__c(
+            Account__c = testAcc.Id,
+            Status__c = '',
+            Invoice_Date__c = null,
+            Tax_Rate__c = null
+        );
+        insert invoiceAllDefaults;
         
         // Reload to get default values
-        invoice = [SELECT Status__c, Invoice_Date__c, Due_Date__c, Tax_Rate__c, Balance_Due__c 
-                   FROM Invoice__c WHERE Id = :invoice.Id];
+        invoiceAllDefaults = [SELECT Status__c, Invoice_Date__c, Due_Date__c, Tax_Rate__c, Balance_Due__c 
+                             FROM Invoice__c WHERE Id = :invoiceAllDefaults.Id];
         
-        System.assertEquals('Draft', invoice.Status__c, 'Default status should be Draft');
-        System.assertEquals(Date.today(), invoice.Invoice_Date__c, 'Default invoice date should be today');
-        System.assertEquals(Date.today().addDays(30), invoice.Due_Date__c, 'Default due date should be 30 days out');
-        System.assertEquals(0, invoice.Tax_Rate__c, 'Default tax rate should be 0 when no billing address');
-        System.assertEquals(0, invoice.Balance_Due__c, 'Default balance due should be 0');
+        System.assertEquals('Draft', invoiceAllDefaults.Status__c, 'Default status should be Draft');
+        System.assertEquals(Date.today(), invoiceAllDefaults.Invoice_Date__c, 'Default invoice date should be today');
+        System.assertEquals(Date.today().addDays(30), invoiceAllDefaults.Due_Date__c, 'Default due date should be 30 days out');
+        System.assertEquals(0, invoiceAllDefaults.Tax_Rate__c, 'Default tax rate should be 0');
+        System.assertEquals(0, invoiceAllDefaults.Balance_Due__c, 'Default balance due should be 0');
+        
+        // Test partial defaults - some values pre-filled
+        Invoice__c invoicePartialDefaults = new Invoice__c(
+            Account__c = testAcc.Id,
+            Status__c = 'Sent',
+            Invoice_Date__c = Date.today().addDays(-10),
+            Tax_Rate__c = 22.0
+        );
+        insert invoicePartialDefaults;
+        
+        invoicePartialDefaults = [SELECT Status__c, Invoice_Date__c, Tax_Rate__c 
+                                 FROM Invoice__c WHERE Id = :invoicePartialDefaults.Id];
+        
+        System.assertEquals('Sent', invoicePartialDefaults.Status__c, 'Should preserve existing status');
+        System.assertEquals(Date.today().addDays(-10), invoicePartialDefaults.Invoice_Date__c, 'Should preserve existing date');
+        System.assertEquals(22.0, invoicePartialDefaults.Tax_Rate__c, 'Should preserve existing tax rate');
         
         Test.stopTest();
     }
@@ -270,6 +312,8 @@ private class InvoiceValidatorTest {
     
     @isTest
     static void testEdgeCases() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        
         Test.startTest();
         
         // Test all validator methods with empty lists
@@ -286,6 +330,7 @@ private class InvoiceValidatorTest {
             new Invoice__c(Account__c = null)
         };
         InvoiceValidator.calculateTaxAmounts(nullAccountInvoices); // Should handle gracefully
+        
         
         Test.stopTest();
     }
