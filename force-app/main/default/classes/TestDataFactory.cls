@@ -90,6 +90,7 @@ public class TestDataFactory {
             Name = 'Test Price Plan ' + counter,
             Product__c = productId,
             Price__c = 99.99,
+            Monthly_Price__c = 99.99,
             Billing_Frequency__c = 'Monthly',
             Currency_Code__c = 'USD',
             Is_Active__c = true
@@ -104,6 +105,18 @@ public class TestDataFactory {
             Start_Date__c = Date.today(),
             End_Date__c = Date.today().addMonths(12)
         );
+    }
+    
+    // Overloaded method for simplified subscription creation
+    public static Subscription__c createSubscription(Id accountId) {
+        // Create a basic price plan if none provided
+        Product__c product = createProduct();
+        insert product;
+        
+        Price_Plan__c pricePlan = createPricePlan(product.Id);
+        insert pricePlan;
+        
+        return createSubscription(accountId, pricePlan.Id);
     }
     
     public static Invoice__c createInvoice(Id accountId) {
@@ -155,5 +168,13 @@ public class TestDataFactory {
     
     public static Integer getUniqueCounter() {
         return ++counter;
+    }
+    
+    // Utility method to generate fake Salesforce IDs for testing
+    public static Id getFakeId(Schema.SObjectType sobjectType) {
+        String sobjectPrefix = sobjectType.getDescribe().getKeyPrefix();
+        String fakeIdPrefix = sobjectPrefix + '0'.repeat(12 - sobjectPrefix.length());
+        String fakeIdSuffix = String.valueOf(Math.random()).substring(2, 5);
+        return Id.valueOf(fakeIdPrefix + fakeIdSuffix);
     }
 }

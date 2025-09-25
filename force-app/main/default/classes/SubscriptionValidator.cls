@@ -16,7 +16,7 @@ public class SubscriptionValidator {
     };
     
     private static final Set<String> STATUSES_REQUIRING_REASON = new Set<String>{
-        'Cancelled', 'Suspended'
+        'Cancelled'
     };
     
     /*

@@ -33,6 +33,9 @@ public class SubscriptionTriggerHandler implements IHandler {
         
         handleNewSubscriptions(subscriptions);
         updateAccountSubscriptionStats(subscriptions);
+        
+        // Publish platform events for external integration
+        PlatformEventPublisher.publishSubscriptionEvents(subscriptions, 'Created');
     }
     
     public void afterUpdate(Map<Id, SObject> oldMap, Map<Id, SObject> newMap) {
@@ -46,6 +49,11 @@ public class SubscriptionTriggerHandler implements IHandler {
         if (!needingInvoice.isEmpty()) {
             queueInvoiceGeneration(needingInvoice);
         }
+        
+        // Publish platform events for status changes and updates
+        System.debug('Publishing platform events for status changes');
+        PlatformEventPublisher.publishSubscriptionStatusChanges((List<Subscription__c>) newMap.values(), oldSubscriptions);
+        PlatformEventPublisher.publishSubscriptionEvents((List<Subscription__c>) newMap.values(), 'Updated');
     }
     
     public void afterDelete(Map<Id, SObject> oldMap) {
@@ -95,31 +103,52 @@ public class SubscriptionTriggerHandler implements IHandler {
     private void handleActivatedSubscriptions(List<Subscription__c> activatedSubs) {
         if (!activatedSubs.isEmpty()) {
             System.debug('Processing ' + activatedSubs.size() + ' activated subscriptions');
-            // TODO: STORY-018 - Welcome email automation
-            // TODO: STORY-019 - Provision service access
+            
+            Set<Id> subscriptionIds = new Set<Id>();
+            for (Subscription__c sub : activatedSubs) {
+                subscriptionIds.add(sub.Id);
+            }
+            
+            SubscriptionAutomationService.processStatusChanges(subscriptionIds);
         }
     }
     
     private void handleCancelledSubscriptions(List<Subscription__c> cancelledSubs) {
         if (!cancelledSubs.isEmpty()) {
             System.debug('Processing ' + cancelledSubs.size() + ' cancelled subscriptions');
-            // TODO: STORY-020 - Exit survey automation
-            // TODO: STORY-021 - Deprovision service access
+            
+            Set<Id> subscriptionIds = new Set<Id>();
+            for (Subscription__c sub : cancelledSubs) {
+                subscriptionIds.add(sub.Id);
+            }
+            
+            SubscriptionAutomationService.processStatusChanges(subscriptionIds);
         }
     }
     
     private void handleSuspendedSubscriptions(List<Subscription__c> suspendedSubs) {
         if (!suspendedSubs.isEmpty()) {
             System.debug('Processing ' + suspendedSubs.size() + ' suspended subscriptions');
-            // TODO: STORY-022 - Dunning workflow integration
-            // TODO: STORY-023 - Partial service limitation
+            
+            Set<Id> subscriptionIds = new Set<Id>();
+            for (Subscription__c sub : suspendedSubs) {
+                subscriptionIds.add(sub.Id);
+            }
+            
+            SubscriptionAutomationService.processStatusChanges(subscriptionIds);
         }
     }
     
     private void handleNewSubscriptions(List<Subscription__c> newSubscriptions) {
         if (!newSubscriptions.isEmpty()) {
             System.debug('Processing ' + newSubscriptions.size() + ' new subscriptions');
-            // TODO: STORY-024 - Subscription analytics tracking
+            
+            Set<Id> subscriptionIds = new Set<Id>();
+            for (Subscription__c sub : newSubscriptions) {
+                subscriptionIds.add(sub.Id);
+            }
+            
+            SubscriptionAutomationService.processNewSubscriptions(subscriptionIds);
         }
     }
     
