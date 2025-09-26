@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Monthly</fullName>
+        <default>true</default>
+        <label>Monthly</label>
+        <color>#4CAF50</color>
+    </customValue>
+    <customValue>
+        <fullName>Quarterly</fullName>
+        <default>false</default>
+        <label>Quarterly</label>
+        <color>#2196F3</color>
+    </customValue>
+    <customValue>
+        <fullName>Semi-Annual</fullName>
+        <default>false</default>
+        <label>Semi-Annual</label>
+        <color>#FF9800</color>
+    </customValue>
+    <customValue>
+        <fullName>Annual</fullName>
+        <default>false</default>
+        <label>Annual</label>
+        <color>#9C27B0</color>
+    </customValue>
+    <customValue>
+        <fullName>One-Time</fullName>
+        <default>false</default>
+        <label>One-Time</label>
+        <color>#795548</color>
+    </customValue>
+    <description>Billing frequency options used for price plans and subscription management</description>
+    <masterLabel>Billing Frequency</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

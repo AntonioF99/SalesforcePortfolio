@@ -22,11 +22,12 @@ private class InvoiceTriggerHandlerTest {
         Invoice__c inv = new Invoice__c(Account__c = acc.Id);
         insert inv;
         
-        inv = [SELECT Status__c, Tax_Rate__c FROM Invoice__c WHERE Id = :inv.Id];
+        inv = [SELECT Status__c, Tax_Rate__c, Invoice_Date__c, Due_Date__c FROM Invoice__c WHERE Id = :inv.Id];
         System.assertEquals('Draft', inv.Status__c, 'Handler should orchestrate defaults');
         System.assertEquals(22.0, inv.Tax_Rate__c, 'Handler should orchestrate tax calculation');
         
         inv.Payment_Terms__c = 'Net 45';
+        inv.Due_Date__c = inv.Invoice_Date__c.addDays(45); // Consistent with Net 45 terms
         update inv;
         
         delete inv;

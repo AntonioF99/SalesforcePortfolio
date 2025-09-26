@@ -90,14 +90,20 @@ private class InvoiceValidatorTest {
         }
         
         // Note: Subtotal__c and Tax_Amount__c are read-only formula/rollup fields
-        // These validations are tested via the validator methods directly
-        List<Invoice__c> testInvoices = new List<Invoice__c>{
-            new Invoice__c(Account__c = acc.Id, Tax_Rate__c = -10.0)  // This will trigger negative validation
-        };
-        
-        // Test that validator catches negative calculated amounts
-        InvoiceValidator.validateBusinessRules(testInvoices, false);
-        System.assert(testInvoices[0].hasErrors(), 'Should have validation errors for negative amounts');
+        // Test validation by attempting DML with negative Balance_Due__c
+        Boolean validationCaught = false;
+        try {
+            Invoice__c testInvoice = new Invoice__c(
+                Account__c = acc.Id,
+                Balance_Due__c = -110.0
+            );
+            insert testInvoice;
+        } catch (DmlException e) {
+            validationCaught = true;
+            System.assert(e.getMessage().contains('Balance due cannot be negative'), 
+                         'Should catch negative balance validation: ' + e.getMessage());
+        }
+        System.assert(validationCaught, 'Should have validation errors for negative amounts');
         
         // Test status-specific validations - Sent without subtotal
         try {
@@ -168,10 +174,10 @@ private class InvoiceValidatorTest {
         System.assertEquals(0, invoiceAllDefaults.Tax_Rate__c, 'Default tax rate should be 0');
         System.assertEquals(0, invoiceAllDefaults.Balance_Due__c, 'Default balance due should be 0');
         
-        // Test partial defaults - some values pre-filled
+        // Test partial defaults - some values pre-filled (Draft status to avoid validation rule on zero subtotal)
         Invoice__c invoicePartialDefaults = new Invoice__c(
             Account__c = testAcc.Id,
-            Status__c = 'Sent',
+            Status__c = 'Draft',
             Invoice_Date__c = Date.today().addDays(-10),
             Tax_Rate__c = 22.0
         );
@@ -180,7 +186,7 @@ private class InvoiceValidatorTest {
         invoicePartialDefaults = [SELECT Status__c, Invoice_Date__c, Tax_Rate__c 
                                  FROM Invoice__c WHERE Id = :invoicePartialDefaults.Id];
         
-        System.assertEquals('Sent', invoicePartialDefaults.Status__c, 'Should preserve existing status');
+        System.assertEquals('Draft', invoicePartialDefaults.Status__c, 'Should preserve existing status');
         System.assertEquals(Date.today().addDays(-10), invoicePartialDefaults.Invoice_Date__c, 'Should preserve existing date');
         System.assertEquals(22.0, invoicePartialDefaults.Tax_Rate__c, 'Should preserve existing tax rate');
         

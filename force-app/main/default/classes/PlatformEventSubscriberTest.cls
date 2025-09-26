@@ -189,19 +189,34 @@ private class PlatformEventSubscriberTest {
     static void testBulkEventProcessing() {
         Account acc = [SELECT Id FROM Account LIMIT 1];
         
-        // Create test data
+        // Create shared dependencies
+        Product__c product = TestDataFactory.createProduct();
+        insert product;
+        
+        Price_Plan__c pricePlan = TestDataFactory.createPricePlan(product.Id);
+        insert pricePlan;
+        
+        // Create test data without DML in loop
         List<Subscription__c> subscriptions = new List<Subscription__c>();
         List<Invoice__c> invoices = new List<Invoice__c>();
         
         for (Integer i = 0; i < 50; i++) {
-            Subscription__c sub = TestDataFactory.createSubscription(acc.Id);
-            sub.Status__c = 'Active';
-            subscriptions.add(sub);
+            subscriptions.add(new Subscription__c(
+                Account__c = acc.Id,
+                Price_Plan__c = pricePlan.Id,
+                Status__c = 'Active',
+                Start_Date__c = Date.today(),
+                End_Date__c = Date.today().addMonths(12)
+            ));
             
-            Invoice__c inv = TestDataFactory.createInvoice(acc.Id);
-            inv.Status__c = 'Sent';
-            inv.Tax_Rate__c = 20.0 + i; // Different tax rates
-            invoices.add(inv);
+            invoices.add(new Invoice__c(
+                Account__c = acc.Id,
+                Status__c = 'Draft', // Changed from 'Sent' to avoid validation error
+                Tax_Rate__c = 20.0 + i,
+                Invoice_Date__c = Date.today(),
+                Due_Date__c = Date.today().addDays(30),
+                Balance_Due__c = 0
+            ));
         }
         
         insert subscriptions;

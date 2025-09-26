@@ -29,7 +29,7 @@ public class PlatformEventSubscriber {
         // Query full subscription data once
         Map<Id, Subscription__c> subscriptionData = new Map<Id, Subscription__c>([
             SELECT Id, Name, Account__c, Account__r.Name, Status__c, 
-                   Start_Date__c, End_Date__c, External_Id__c
+                   Start_Date__c
             FROM Subscription__c 
             WHERE Id IN :subscriptionIds
             WITH SECURITY_ENFORCED

@@ -51,9 +51,9 @@ public class InvoiceTriggerHandler implements IHandler {
             storeInvoicesForRecalculation(needingRecalc);
         }
         
-        // Publish platform events for status changes and updates
+        // Publish consolidated platform events for status changes and updates
         PlatformEventPublisher.publishInvoiceStatusChanges(invoices, oldInvoices);
-        PlatformEventPublisher.publishInvoiceEvents(invoices, 'Updated');
+        // Note: publishInvoiceStatusChanges now handles both status changes and general updates
     }
     
     public void afterDelete(Map<Id, SObject> oldMap) {

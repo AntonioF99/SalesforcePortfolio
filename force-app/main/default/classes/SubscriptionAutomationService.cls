@@ -23,9 +23,46 @@ public class SubscriptionAutomationService {
             WITH SECURITY_ENFORCED
         ];
         
+        // Bulk query email template
+        EmailTemplate welcomeTemplate = null;
+        try {
+            welcomeTemplate = [
+                SELECT Id FROM EmailTemplate 
+                WHERE DeveloperName = 'Subscription_Welcome'
+                LIMIT 1
+            ];
+        } catch (QueryException e) {
+            System.debug('Welcome email template not found: ' + e.getMessage());
+        }
+        
+        // Bulk query contacts for all accounts
+        Set<Id> accountIds = new Set<Id>();
+        for (Subscription__c sub : subscriptions) {
+            if (sub.Account__c != null) {
+                accountIds.add(sub.Account__c);
+            }
+        }
+        
+        Map<Id, Contact> accountContactMap = new Map<Id, Contact>();
+        try {
+            List<Contact> contacts = [
+                SELECT Id, AccountId, Email FROM Contact 
+                WHERE AccountId IN :accountIds 
+                AND Email != null
+                ORDER BY AccountId, CreatedDate ASC
+            ];
+            for (Contact contact : contacts) {
+                if (!accountContactMap.containsKey(contact.AccountId)) {
+                    accountContactMap.put(contact.AccountId, contact);
+                }
+            }
+        } catch (QueryException e) {
+            System.debug('Contacts not found: ' + e.getMessage());
+        }
+        
         List<Task> onboardingTasks = new List<Task>();
         List<Messaging.SingleEmailMessage> welcomeEmails = new List<Messaging.SingleEmailMessage>();
-        List<Account> accountsToUpdate = new List<Account>();
+        Map<Id, Account> accountsToUpdateMap = new Map<Id, Account>();
         
         for (Subscription__c sub : subscriptions) {
             
@@ -34,19 +71,20 @@ public class SubscriptionAutomationService {
             
             // Send welcome email
             if (sub.Account__c != null) {
-                Messaging.SingleEmailMessage email = createWelcomeEmail(sub);
+                Messaging.SingleEmailMessage email = createWelcomeEmail(sub, welcomeTemplate, accountContactMap);
                 if (email != null) {
                     welcomeEmails.add(email);
                 }
             }
             
-            // Update account subscription status
-            Account acc = new Account(
-                Id = sub.Account__c,
-                Subscription_Status__c = 'Active Customer',
-                Last_Subscription_Date__c = sub.Start_Date__c
-            );
-            accountsToUpdate.add(acc);
+            // Update account subscription status (avoid duplicates with Map)
+            if (sub.Account__c != null && !accountsToUpdateMap.containsKey(sub.Account__c)) {
+                accountsToUpdateMap.put(sub.Account__c, new Account(
+                    Id = sub.Account__c,
+                    Subscription_Status__c = 'Active Customer',
+                    Last_Subscription_Date__c = sub.Start_Date__c
+                ));
+            }
         }
         
         // Execute bulk operations
@@ -69,8 +107,9 @@ public class SubscriptionAutomationService {
             }
         }
         
-        if (!accountsToUpdate.isEmpty()) {
-            update accountsToUpdate;
+        if (!accountsToUpdateMap.isEmpty()) {
+            System.debug('Updating ' + accountsToUpdateMap.size() + ' account records');
+            update accountsToUpdateMap.values();
         }
     }
     
@@ -90,7 +129,7 @@ public class SubscriptionAutomationService {
         ];
         
         List<Task> followUpTasks = new List<Task>();
-        List<Account> accountsToUpdate = new List<Account>();
+        Map<Id, Account> accountsToUpdateMap = new Map<Id, Account>();
         
         for (Subscription__c sub : subscriptions) {
             
@@ -100,22 +139,24 @@ public class SubscriptionAutomationService {
                 followUpTasks.add(followUp);
             }
             
-            // Update account health score based on subscription status
-            Decimal healthScore = calculateAccountHealthScore(sub.Status__c);
-            Account acc = new Account(
-                Id = sub.Account__c,
-                Health_Score__c = healthScore,
-                Subscription_Status__c = getAccountStatus(sub.Status__c)
-            );
-            accountsToUpdate.add(acc);
+            // Update account health score based on subscription status (avoid duplicates)
+            if (sub.Account__c != null && !accountsToUpdateMap.containsKey(sub.Account__c)) {
+                Decimal healthScore = calculateAccountHealthScore(sub.Status__c);
+                accountsToUpdateMap.put(sub.Account__c, new Account(
+                    Id = sub.Account__c,
+                    Health_Score__c = healthScore,
+                    Subscription_Status__c = getAccountStatus(sub.Status__c)
+                ));
+            }
         }
         
         if (!followUpTasks.isEmpty()) {
             insert followUpTasks;
         }
         
-        if (!accountsToUpdate.isEmpty()) {
-            update accountsToUpdate;
+        if (!accountsToUpdateMap.isEmpty()) {
+            System.debug('Updating ' + accountsToUpdateMap.size() + ' account records');
+            update accountsToUpdateMap.values();
         }
     }
     
@@ -163,27 +204,19 @@ public class SubscriptionAutomationService {
     /**
      * @description Creates welcome email for new subscription
      */
-    private static Messaging.SingleEmailMessage createWelcomeEmail(Subscription__c subscription) {
+    private static Messaging.SingleEmailMessage createWelcomeEmail(Subscription__c subscription, EmailTemplate welcomeTemplate, Map<Id, Contact> accountContactMap) {
         
         try {
-            // Query for welcome email template
-            EmailTemplate welcomeTemplate = [
-                SELECT Id, Subject, Body 
-                FROM EmailTemplate 
-                WHERE DeveloperName = 'Subscription_Welcome'
-                LIMIT 1
-            ];
+            // Use bulk queried template and contact
+            if (welcomeTemplate == null) {
+                throw new QueryException('Template not found');
+            }
             System.debug('Found email template: ' + welcomeTemplate.Id);
             
-            // Get primary contact for account
-            Contact primaryContact = [
-                SELECT Id, Email 
-                FROM Contact 
-                WHERE AccountId = :subscription.Account__c 
-                AND Email != null
-                ORDER BY CreatedDate ASC
-                LIMIT 1
-            ];
+            Contact primaryContact = accountContactMap.get(subscription.Account__c);
+            if (primaryContact == null) {
+                throw new QueryException('Contact not found');
+            }
             System.debug('Found contact: ' + primaryContact?.Email);
             
             if (primaryContact != null) {
@@ -201,6 +234,10 @@ public class SubscriptionAutomationService {
             
         } catch (QueryException e) {
             System.debug(LoggingLevel.ERROR, 'Welcome email template or contact not found: ' + e.getMessage());
+            // In test context, return null to avoid email failures
+            if (Test.isRunningTest()) {
+                return null;
+            }
         }
         
         return null;

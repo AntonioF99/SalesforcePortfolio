@@ -94,21 +94,39 @@ public class PlatformEventPublisher {
                                                   Map<Id, Invoice__c> oldInvoices) {
         
         List<Invoice__c> statusChangedInvs = new List<Invoice__c>();
+        List<Invoice_Event__e> allStatusEvents = new List<Invoice_Event__e>();
         
         for (Invoice__c inv : invoices) {
             Invoice__c oldInv = oldInvoices.get(inv.Id);
             if (oldInv != null && inv.Status__c != oldInv.Status__c) {
                 statusChangedInvs.add(inv);
                 
-                // Publish specific event types for critical status changes
+                // Create events for critical status changes
+                String eventType = '';
                 if (inv.Status__c == 'Sent') {
-                    publishInvoiceEvents(new List<Invoice__c>{inv}, 'Sent');
+                    eventType = 'Sent';
                 } else if (inv.Status__c == 'Paid') {
-                    publishInvoiceEvents(new List<Invoice__c>{inv}, 'Paid');
+                    eventType = 'Paid';
                 } else if (inv.Status__c == 'Voided') {
-                    publishInvoiceEvents(new List<Invoice__c>{inv}, 'Voided');
+                    eventType = 'Voided';
+                }
+                
+                if (!String.isBlank(eventType)) {
+                    Invoice_Event__e invoiceEvent = new Invoice_Event__e(
+                        Invoice_Id__c = inv.Id,
+                        Account_Id__c = inv.Account__c,
+                        Event_Type__c = eventType,
+                        Status__c = inv.Status__c,
+                        Total_Amount__c = inv.Total_Amount__c
+                    );
+                    allStatusEvents.add(invoiceEvent);
                 }
             }
+        }
+        
+        // Publish all status events in a single DML operation
+        if (!allStatusEvents.isEmpty()) {
+            publishEvents(allStatusEvents, 'Invoice Status Change');
         }
     }
     

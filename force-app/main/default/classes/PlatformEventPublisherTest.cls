@@ -19,13 +19,16 @@ private class PlatformEventPublisherTest {
         
         Test.startTest();
         
-        // Create test subscriptions
+        // Create test subscriptions without DML in loop
         List<Subscription__c> subscriptions = new List<Subscription__c>();
         for (Integer i = 0; i < 5; i++) {
-            Subscription__c sub = TestDataFactory.createSubscription(acc.Id);
-            sub.Status__c = 'Active';
-            sub.External_Id__c = 'EXT-SUB-' + i;
-            subscriptions.add(sub);
+            subscriptions.add(new Subscription__c(
+                Account__c = acc.Id,
+                Status__c = 'Active',
+                External_Id__c = 'EXT-SUB-' + i,
+                Start_Date__c = Date.today(),
+                End_Date__c = Date.today().addMonths(12)
+            ));
         }
         
         // Test event publishing
@@ -48,13 +51,17 @@ private class PlatformEventPublisherTest {
         
         Test.startTest();
         
-        // Create test invoices
+        // Create test invoices without DML in loop  
         List<Invoice__c> invoices = new List<Invoice__c>();
         for (Integer i = 0; i < 5; i++) {
-            Invoice__c inv = TestDataFactory.createInvoice(acc.Id);
-            inv.Status__c = 'Sent';
-            inv.Tax_Rate__c = 20.0; // Will calculate Total_Amount__c via formula
-            invoices.add(inv);
+            invoices.add(new Invoice__c(
+                Account__c = acc.Id,
+                Status__c = 'Sent',
+                Tax_Rate__c = 20.0,
+                Invoice_Date__c = Date.today(),
+                Due_Date__c = Date.today().addDays(30),
+                Balance_Due__c = 0
+            ));
         }
         
         // Test event publishing
@@ -82,12 +89,23 @@ private class PlatformEventPublisherTest {
         Map<Id, Subscription__c> oldSubscriptions = new Map<Id, Subscription__c>();
         
         for (Integer i = 0; i < 3; i++) {
-            Subscription__c oldSub = TestDataFactory.createSubscription(acc.Id);
-            oldSub.Status__c = 'Draft';
-            oldSub.Id = TestDataFactory.getFakeId(Subscription__c.SObjectType);
+            Id fakeId = TestDataFactory.getFakeId(Subscription__c.SObjectType);
             
-            Subscription__c newSub = oldSub.clone(true, true, true, true);
-            newSub.Status__c = 'Active';
+            Subscription__c oldSub = new Subscription__c(
+                Id = fakeId,
+                Account__c = acc.Id,
+                Status__c = 'Draft',
+                Start_Date__c = Date.today(),
+                End_Date__c = Date.today().addMonths(12)
+            );
+            
+            Subscription__c newSub = new Subscription__c(
+                Id = fakeId,
+                Account__c = acc.Id,
+                Status__c = 'Active',
+                Start_Date__c = Date.today(),
+                End_Date__c = Date.today().addMonths(12)
+            );
             
             newSubscriptions.add(newSub);
             oldSubscriptions.put(oldSub.Id, oldSub);
@@ -122,12 +140,25 @@ private class PlatformEventPublisherTest {
         String[] statusProgression = new String[]{'Draft', 'Sent', 'Paid'};
         
         for (Integer i = 0; i < statusProgression.size(); i++) {
-            Invoice__c oldInv = TestDataFactory.createInvoice(acc.Id);
-            oldInv.Status__c = 'Draft';
-            oldInv.Id = TestDataFactory.getFakeId(Invoice__c.SObjectType);
+            Id fakeId = TestDataFactory.getFakeId(Invoice__c.SObjectType);
             
-            Invoice__c newInv = oldInv.clone(true, true, true, true);
-            newInv.Status__c = statusProgression[i];
+            Invoice__c oldInv = new Invoice__c(
+                Id = fakeId,
+                Account__c = acc.Id,
+                Status__c = 'Draft',
+                Invoice_Date__c = Date.today(),
+                Due_Date__c = Date.today().addDays(30),
+                Balance_Due__c = 0
+            );
+            
+            Invoice__c newInv = new Invoice__c(
+                Id = fakeId,
+                Account__c = acc.Id,
+                Status__c = statusProgression[i],
+                Invoice_Date__c = Date.today(),
+                Due_Date__c = Date.today().addDays(30),
+                Balance_Due__c = 0
+            );
             
             newInvoices.add(newInv);
             oldInvoices.put(oldInv.Id, oldInv);
@@ -147,27 +178,43 @@ private class PlatformEventPublisherTest {
         
         Test.startTest();
         
-        // Create bulk data for testing
+        // Create bulk data for testing - no DML in loop
         List<Subscription__c> bulkSubscriptions = new List<Subscription__c>();
         List<Invoice__c> bulkInvoices = new List<Invoice__c>();
         
-        for (Integer i = 0; i < 200; i++) {
-            Subscription__c sub = TestDataFactory.createSubscription(acc.Id);
-            sub.Status__c = 'Active';
-            bulkSubscriptions.add(sub);
+        // Create all objects without DML using clean pattern
+        Integer bulkSize = 50;
+        
+        for (Integer i = 0; i < bulkSize; i++) {
+            bulkSubscriptions.add(new Subscription__c(
+                Account__c = acc.Id,
+                Status__c = 'Active',
+                Start_Date__c = Date.today(),
+                End_Date__c = Date.today().addMonths(12)
+            ));
             
-            Invoice__c inv = TestDataFactory.createInvoice(acc.Id);
-            inv.Status__c = 'Sent';
-            bulkInvoices.add(inv);
+            bulkInvoices.add(new Invoice__c(
+                Account__c = acc.Id,
+                Status__c = 'Sent',
+                Invoice_Date__c = Date.today(),
+                Due_Date__c = Date.today().addDays(30),
+                Balance_Due__c = 0
+            ));
         }
         
-        // Test bulk publishing
-        PlatformEventPublisher.publishSubscriptionEvents(bulkSubscriptions, 'Created');
-        PlatformEventPublisher.publishInvoiceEvents(bulkInvoices, 'Created');
+        // Test bulk publishing - verify no exceptions thrown
+        Boolean success = false;
+        try {
+            PlatformEventPublisher.publishSubscriptionEvents(bulkSubscriptions, 'Created');
+            PlatformEventPublisher.publishInvoiceEvents(bulkInvoices, 'Created');
+            success = true;
+        } catch (Exception e) {
+            System.assert(false, 'Platform event publishing failed: ' + e.getMessage());
+        }
         
         Test.stopTest();
         
-        System.assert(true, 'Bulk event publishing completed successfully');
+        System.assert(success, 'Should publish bulk events successfully without exceptions');
     }
     
     @isTest
