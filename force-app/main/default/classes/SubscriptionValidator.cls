@@ -74,17 +74,15 @@ public class SubscriptionValidator {
     public static void validateCancellationPermissions(Map<Id, Subscription__c> oldSubscriptions, 
                                                     Map<Id, Subscription__c> newSubscriptions) {
         
-        Boolean canCancelAny = FeatureManagement.checkPermission('Cancel_Any_Subscription');
-        
-        if (!canCancelAny) {
-            for (Id subId : newSubscriptions.keySet()) {
-                Subscription__c oldSub = oldSubscriptions.get(subId);
-                Subscription__c newSub = newSubscriptions.get(subId);
+        for (Id subId : newSubscriptions.keySet()) {
+            Subscription__c oldSub = oldSubscriptions.get(subId);
+            Subscription__c newSub = newSubscriptions.get(subId);
+            
+            if (oldSub.Status__c != Constants.SUBSCRIPTION_STATUS_CANCELLED && 
+                newSub.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED) {
                 
-                if (oldSub.Status__c != 'Cancelled' && newSub.Status__c == 'Cancelled') {
-                    if (oldSub.Status__c != 'Draft' && oldSub.Status__c != 'Trial') {
-                        newSub.addError('You do not have permission to cancel active subscriptions');
-                    }
+                if (!SecurityUtils.canCancelSubscription(oldSub)) {
+                    newSub.addError('You do not have permission to cancel this subscription');
                 }
             }
         }

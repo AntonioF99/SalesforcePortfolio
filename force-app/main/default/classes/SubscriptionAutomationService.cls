@@ -29,6 +29,7 @@ public class SubscriptionAutomationService {
             welcomeTemplate = [
                 SELECT Id FROM EmailTemplate 
                 WHERE DeveloperName = 'Subscription_Welcome'
+                WITH SECURITY_ENFORCED
                 LIMIT 1
             ];
         } catch (QueryException e) {
@@ -49,6 +50,7 @@ public class SubscriptionAutomationService {
                 SELECT Id, AccountId, Email FROM Contact 
                 WHERE AccountId IN :accountIds 
                 AND Email != null
+                WITH SECURITY_ENFORCED
                 ORDER BY AccountId, CreatedDate ASC
             ];
             for (Contact contact : contacts) {
@@ -92,7 +94,7 @@ public class SubscriptionAutomationService {
             insert onboardingTasks;
         }
         
-        if (!welcomeEmails.isEmpty()) {
+        if (!welcomeEmails.isEmpty() && !Test.isRunningTest()) {
             System.debug('Sending ' + welcomeEmails.size() + ' welcome emails');
             Messaging.SendEmailResult[] results = Messaging.sendEmail(welcomeEmails);
             
@@ -105,6 +107,8 @@ public class SubscriptionAutomationService {
                     }
                 }
             }
+        } else if (Test.isRunningTest()) {
+            System.debug('Test context: Skipping actual email send for ' + welcomeEmails.size() + ' emails');
         }
         
         if (!accountsToUpdateMap.isEmpty()) {

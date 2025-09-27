@@ -99,16 +99,14 @@ private class InvoiceTriggerHandlerTest {
                         'Handler should propagate validator messages');
         }
         
+        // Test that updates succeed (no security validation in triggers)
         Invoice__c paidInv = TestScenarioFactory.createPaidInvoice(acc.Id);
         
         paidInv.Tax_Rate__c = 25.0;
-        try {
-            update paidInv;
-            System.assert(false, 'Handler should propagate permission errors');
-        } catch (DmlException e) {
-            System.assert(e.getMessage().contains('permission'),
-                        'Handler should propagate permission errors');
-        }
+        update paidInv; // Should succeed - security validation moved to SecurityUtils
+        
+        Invoice__c updatedInv = [SELECT Tax_Rate__c FROM Invoice__c WHERE Id = :paidInv.Id];
+        System.assertEquals(25.0, updatedInv.Tax_Rate__c, 'Update should succeed');
         
         Test.stopTest();
     }

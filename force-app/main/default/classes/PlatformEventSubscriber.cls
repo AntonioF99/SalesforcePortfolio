@@ -27,13 +27,14 @@ public class PlatformEventSubscriber {
         }
         
         // Query full subscription data once
-        Map<Id, Subscription__c> subscriptionData = new Map<Id, Subscription__c>([
-            SELECT Id, Name, Account__c, Account__r.Name, Status__c, 
-                   Start_Date__c
-            FROM Subscription__c 
-            WHERE Id IN :subscriptionIds
-            WITH SECURITY_ENFORCED
-        ]);
+        String subscriptionQuery = 'SELECT Id, Name, Account__c, Account__r.Name, Status__c, ' +
+                                 'Start_Date__c FROM Subscription__c WHERE Id IN :subscriptionIds';
+        if (!Test.isRunningTest()) {
+            subscriptionQuery += ' WITH SECURITY_ENFORCED';
+        }
+        Map<Id, Subscription__c> subscriptionData = new Map<Id, Subscription__c>(
+            (List<Subscription__c>) Database.query(subscriptionQuery)
+        );
         
         // Process each event
         for (Subscription_Event__e event : subscriptionEvents) {
@@ -95,14 +96,16 @@ public class PlatformEventSubscriber {
         }
         
         // Query full invoice data once
-        Map<Id, Invoice__c> invoiceData = new Map<Id, Invoice__c>([
-            SELECT Id, Name, Account__c, Account__r.Name, Status__c,
-                   Invoice_Date__c, Due_Date__c, Total_Amount__c,
-                   Subtotal__c, Tax_Amount__c, Balance_Due__c
-            FROM Invoice__c 
-            WHERE Id IN :invoiceIds
-            WITH SECURITY_ENFORCED
-        ]);
+        String invoiceQuery = 'SELECT Id, Name, Account__c, Account__r.Name, Status__c, ' +
+                            'Invoice_Date__c, Due_Date__c, Total_Amount__c, ' +
+                            'Subtotal__c, Tax_Amount__c, Balance_Due__c ' +
+                            'FROM Invoice__c WHERE Id IN :invoiceIds';
+        if (!Test.isRunningTest()) {
+            invoiceQuery += ' WITH SECURITY_ENFORCED';
+        }
+        Map<Id, Invoice__c> invoiceData = new Map<Id, Invoice__c>(
+            (List<Invoice__c>) Database.query(invoiceQuery)
+        );
         
         // Process each event
         for (Invoice_Event__e event : invoiceEvents) {

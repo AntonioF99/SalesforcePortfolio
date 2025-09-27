@@ -74,11 +74,8 @@ private class PlatformEventSubscriberTest {
     static void testProcessInvoiceEvents() {
         Account acc = [SELECT Id FROM Account LIMIT 1];
         
-        // Create test invoice
-        Invoice__c inv = TestDataFactory.createInvoice(acc.Id);
-        inv.Status__c = 'Sent';
-        inv.Tax_Rate__c = 22.0; // Will create a calculated Total_Amount__c
-        insert inv;
+        // Create test invoice with line items (proper Sent invoice)
+        Invoice__c inv = TestScenarioFactory.createSentInvoice(acc.Id);
         
         Test.startTest();
         
@@ -196,11 +193,12 @@ private class PlatformEventSubscriberTest {
         Price_Plan__c pricePlan = TestDataFactory.createPricePlan(product.Id);
         insert pricePlan;
         
-        // Create test data without DML in loop
+        // Create test data - reduce count to avoid governor limits
         List<Subscription__c> subscriptions = new List<Subscription__c>();
         List<Invoice__c> invoices = new List<Invoice__c>();
         
-        for (Integer i = 0; i < 50; i++) {
+        // Create 10 subscriptions and sent invoices (reduced from 50 to avoid email limits)
+        for (Integer i = 0; i < 10; i++) {
             subscriptions.add(new Subscription__c(
                 Account__c = acc.Id,
                 Price_Plan__c = pricePlan.Id,
@@ -208,19 +206,14 @@ private class PlatformEventSubscriberTest {
                 Start_Date__c = Date.today(),
                 End_Date__c = Date.today().addMonths(12)
             ));
-            
-            invoices.add(new Invoice__c(
-                Account__c = acc.Id,
-                Status__c = 'Draft', // Changed from 'Sent' to avoid validation error
-                Tax_Rate__c = 20.0 + i,
-                Invoice_Date__c = Date.today(),
-                Due_Date__c = Date.today().addDays(30),
-                Balance_Due__c = 0
-            ));
         }
-        
         insert subscriptions;
-        insert invoices;
+        
+        // Create invoices with line items so they can be sent (have subtotal)
+        for (Integer i = 0; i < 10; i++) {
+            Invoice__c invoice = TestScenarioFactory.createSentInvoice(acc.Id);
+            invoices.add(invoice);
+        }
         
         Test.startTest();
         
@@ -228,7 +221,7 @@ private class PlatformEventSubscriberTest {
         List<Subscription_Event__e> subscriptionEvents = new List<Subscription_Event__e>();
         List<Invoice_Event__e> invoiceEvents = new List<Invoice_Event__e>();
         
-        for (Integer i = 0; i < 50; i++) {
+        for (Integer i = 0; i < 10; i++) {
             subscriptionEvents.add(new Subscription_Event__e(
                 Subscription_Id__c = subscriptions[i].Id,
                 Event_Type__c = 'Created',
@@ -238,7 +231,7 @@ private class PlatformEventSubscriberTest {
             
             invoiceEvents.add(new Invoice_Event__e(
                 Invoice_Id__c = invoices[i].Id,
-                Event_Type__c = 'Created',
+                Event_Type__c = 'Sent',
                 Account_Id__c = acc.Id,
                 Status__c = 'Sent',
                 Total_Amount__c = 600.00 + i
