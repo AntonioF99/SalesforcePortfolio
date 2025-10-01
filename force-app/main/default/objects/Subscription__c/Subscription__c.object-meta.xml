@@ -155,9 +155,11 @@
     <externalSharingModel>ControlledByParent</externalSharingModel>
     <label>Subscription</label>
     <nameField>
-        <label>Subscription Name</label>
+        <displayFormat>SUB-{0000}</displayFormat>
+        <label>Subscription Code</label>
+        <startingNumber>1</startingNumber>
         <trackHistory>false</trackHistory>
-        <type>Text</type>
+        <type>AutoNumber</type>
     </nameField>
     <pluralLabel>Subscription</pluralLabel>
     <searchLayouts></searchLayouts>
