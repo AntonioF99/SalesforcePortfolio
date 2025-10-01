@@ -278,7 +278,7 @@ public class TestScenarioFactory {
         
         Subscription__c suspendedSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         suspendedSub.Status__c = 'Suspended';
-        suspendedSub.Cancellation_Reason__c = 'Budget Constraints';
+        // Note: Cancellation_Reason__c is only for Cancelled status, not Suspended
         subscriptions.add(suspendedSub);
         
         insert subscriptions;

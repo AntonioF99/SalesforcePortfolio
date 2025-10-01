@@ -8,11 +8,7 @@
 @isTest
 private class SubscriptionValidatorTest {
     
-    @testSetup
-    static void setupTestData() {
-        // Create complete subscription setup using scenario factory
-        TestScenarioFactory.createCompleteSubscriptionSetup();
-    }
+    // Note: Removed @testSetup to avoid conflicts when tests create their own data
     
     // ========== STATE MACHINE VALIDATION ==========
     

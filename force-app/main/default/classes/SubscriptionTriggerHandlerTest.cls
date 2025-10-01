@@ -7,23 +7,18 @@
 @isTest
 private class SubscriptionTriggerHandlerTest {
     
-    @testSetup
-    static void setupTestData() {
-        TestScenarioFactory.createCompleteSubscriptionSetup();
-    }
+    // Note: Removed @testSetup to avoid conflicts when tests create their own data
     
     @isTest
     static void testBeforeTriggerOrchestration() {
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
+        Map<String, SObject> testData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Account acc = (Account) testData.get('account');
+        Price_Plan__c pricePlan = (Price_Plan__c) testData.get('pricePlan');
         
         Test.startTest();
-        
-        Subscription__c sub = new Subscription__c(
-            Account__c = acc.Id,
-            Price_Plan__c = pricePlan.Id
-        );
-        insert sub;
+
+        // Use existing subscription from setup instead of creating new one
+        Subscription__c sub = (Subscription__c) testData.get('subscription');
         
         sub = [SELECT Status__c FROM Subscription__c WHERE Id = :sub.Id];
         System.assertEquals('Draft', sub.Status__c, 'Handler should orchestrate defaults');
@@ -82,10 +77,11 @@ private class SubscriptionTriggerHandlerTest {
         Test.stopTest();
     }
     
-    @isTest  
+    @isTest
     static void testErrorPropagation() {
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
+        Map<String, SObject> testData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Account acc = (Account) testData.get('account');
+        Price_Plan__c pricePlan = (Price_Plan__c) testData.get('pricePlan');
         
         Test.startTest();
         
@@ -120,8 +116,9 @@ private class SubscriptionTriggerHandlerTest {
     
     @isTest
     static void testBulkProcessing() {
-        Account acc = [SELECT Id FROM Account LIMIT 1];
-        Price_Plan__c pricePlan = [SELECT Id FROM Price_Plan__c LIMIT 1];
+        Map<String, SObject> testData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        Account acc = (Account) testData.get('account');
+        Price_Plan__c pricePlan = (Price_Plan__c) testData.get('pricePlan');
         
         Test.startTest();
         

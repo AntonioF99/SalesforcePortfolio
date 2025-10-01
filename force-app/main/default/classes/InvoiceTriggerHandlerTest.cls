@@ -19,7 +19,10 @@ private class InvoiceTriggerHandlerTest {
         
         Test.startTest();
         
-        Invoice__c inv = new Invoice__c(Account__c = acc.Id);
+        Invoice__c inv = new Invoice__c(
+            Account__c = acc.Id,
+            Due_Date__c = Date.today().addDays(30)
+        );
         insert inv;
         
         inv = [SELECT Status__c, Tax_Rate__c, Invoice_Date__c, Due_Date__c FROM Invoice__c WHERE Id = :inv.Id];

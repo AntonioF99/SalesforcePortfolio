@@ -88,7 +88,8 @@ private class SecurityUtilsTest {
         Subscription__c draftSub = new Subscription__c(
             Account__c = testAccount.Id,
             Price_Plan__c = testPricePlan.Id,
-            Status__c = Constants.SUBSCRIPTION_STATUS_DRAFT
+            Status__c = Constants.SUBSCRIPTION_STATUS_DRAFT,
+            Start_Date__c = Date.today()
         );
         insert draftSub;
         
@@ -99,7 +100,8 @@ private class SecurityUtilsTest {
         Subscription__c trialSub = new Subscription__c(
             Account__c = testAccount.Id,
             Price_Plan__c = testPricePlan.Id,
-            Status__c = Constants.SUBSCRIPTION_STATUS_TRIAL
+            Status__c = Constants.SUBSCRIPTION_STATUS_TRIAL,
+            Start_Date__c = Date.today()
         );
         insert trialSub;
         
@@ -110,7 +112,8 @@ private class SecurityUtilsTest {
         Subscription__c activeSub = new Subscription__c(
             Account__c = testAccount.Id,
             Price_Plan__c = testPricePlan.Id,
-            Status__c = Constants.SUBSCRIPTION_STATUS_ACTIVE
+            Status__c = Constants.SUBSCRIPTION_STATUS_ACTIVE,
+            Start_Date__c = Date.today()
         );
         insert activeSub;
         
@@ -160,7 +163,8 @@ private class SecurityUtilsTest {
         Subscription__c draftSub = new Subscription__c(
             Account__c = testAccount.Id,
             Price_Plan__c = testPricePlan.Id,
-            Status__c = Constants.SUBSCRIPTION_STATUS_DRAFT
+            Status__c = Constants.SUBSCRIPTION_STATUS_DRAFT,
+            Start_Date__c = Date.today()
         );
         insert draftSub;
         
@@ -171,7 +175,8 @@ private class SecurityUtilsTest {
         Subscription__c activeSub = new Subscription__c(
             Account__c = testAccount.Id,
             Price_Plan__c = testPricePlan.Id,
-            Status__c = Constants.SUBSCRIPTION_STATUS_ACTIVE
+            Status__c = Constants.SUBSCRIPTION_STATUS_ACTIVE,
+            Start_Date__c = Date.today()
         );
         insert activeSub;
         
