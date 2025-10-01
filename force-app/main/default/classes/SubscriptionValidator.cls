@@ -112,8 +112,8 @@ public class SubscriptionValidator {
                     sub.addError('Trial_End_Date__c', 'Trial end date must be in the future');
                 }
                 
-                if (sub.Trial_End_Date__c > Date.today().addDays(14)) {
-                    sub.addError('Trial_End_Date__c', 'Trial period cannot exceed 14 days');
+                if (sub.Trial_End_Date__c > Date.today().addDays(Constants.DEFAULT_TRIAL_DAYS)) {
+                    sub.addError('Trial_End_Date__c', 'Trial period cannot exceed ' + Constants.DEFAULT_TRIAL_DAYS + ' days');
                 }
             }
             
@@ -150,7 +150,7 @@ public class SubscriptionValidator {
             }
             
             if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_TRIAL && sub.Trial_End_Date__c == null) {
-                sub.Trial_End_Date__c = Date.today().addDays(14);
+                sub.Trial_End_Date__c = Date.today().addDays(Constants.DEFAULT_TRIAL_DAYS);
             }
             
             // Auto-populate Cancellation Date when Status = Cancelled
@@ -159,7 +159,8 @@ public class SubscriptionValidator {
             }
         }
     }
-    
+
+
     /*
      * @description Identifies subscriptions that need invoice generation
      * @param oldSubscriptions Map of old subscription records

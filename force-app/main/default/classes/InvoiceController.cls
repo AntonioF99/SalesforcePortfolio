@@ -7,9 +7,11 @@ public with sharing class InvoiceController {
     
     @AuraEnabled(cacheable=false)
     public static Invoice__c getInvoiceWithRelated(Id invoiceId) {
+        PerformanceMonitor.PerformanceSnapshot baseline = new PerformanceMonitor.PerformanceSnapshot();
+        
         Invoice__c result = [
             SELECT Id, Name, 
-                   Account__c,
+                   Account__c, Account__r.Name, Account__r.Type,
                    Status__c,
                    Invoice_Date__c,
                    Due_Date__c,
@@ -18,18 +20,15 @@ public with sharing class InvoiceController {
                    Subtotal__c,
                    Tax_Amount__c,
                    Total_Amount__c,
-                   Balance_Due__c
+                   Balance_Due__c,
+                   RecordType.DeveloperName
             FROM Invoice__c 
             WHERE Id = :invoiceId 
             WITH SECURITY_ENFORCED
             LIMIT 1
         ];
         
-        // Load Account name
-        if (result.Account__c != null) {
-            result.Account__r = [SELECT Name FROM Account WHERE Id = :result.Account__c WITH SECURITY_ENFORCED LIMIT 1];
-        }
-        
+        PerformanceMonitor.logPerformanceMetrics('InvoiceController.getInvoiceWithRelated', baseline);
         return result;
     }
     
@@ -44,5 +43,57 @@ public with sharing class InvoiceController {
     @AuraEnabled
     public static void updateInvoice(Invoice__c invoice) {
         update invoice;
+    }
+    
+    @AuraEnabled(cacheable=true)
+    public static List<Invoice__c> getInvoicesByAccount(Id accountId) {
+        PerformanceMonitor.PerformanceSnapshot baseline = new PerformanceMonitor.PerformanceSnapshot();
+        
+        List<Invoice__c> results = [
+            SELECT Id, Name, 
+                   Account__c, Account__r.Name,
+                   Status__c,
+                   Invoice_Date__c,
+                   Due_Date__c,
+                   Total_Amount__c,
+                   Balance_Due__c,
+                   RecordType.DeveloperName
+            FROM Invoice__c 
+            WHERE Account__c = :accountId 
+            WITH SECURITY_ENFORCED
+            ORDER BY Invoice_Date__c DESC
+            LIMIT 100
+        ];
+        
+        PerformanceMonitor.logPerformanceMetrics('InvoiceController.getInvoicesByAccount', baseline);
+        return results;
+    }
+    
+    @AuraEnabled(cacheable=true) 
+    public static List<Invoice__c> getOverdueInvoices() {
+        PerformanceMonitor.PerformanceSnapshot baseline = new PerformanceMonitor.PerformanceSnapshot();
+        
+        List<Invoice__c> results = [
+            SELECT Id, Name,
+                   Account__c, Account__r.Name,
+                   Status__c,
+                   Due_Date__c,
+                   Total_Amount__c,
+                   Balance_Due__c
+            FROM Invoice__c 
+            WHERE Status__c = 'Overdue'
+            AND Balance_Due__c > 0
+            WITH SECURITY_ENFORCED
+            ORDER BY Due_Date__c ASC
+            LIMIT 50
+        ];
+        
+        PerformanceMonitor.logPerformanceMetrics('InvoiceController.getOverdueInvoices', baseline);
+        return results;
+    }
+    
+    @AuraEnabled
+    public static Map<String, Object> getPerformanceStats() {
+        return PerformanceMonitor.getCurrentUsage();
     }
 }

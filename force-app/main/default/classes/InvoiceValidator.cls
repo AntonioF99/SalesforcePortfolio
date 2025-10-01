@@ -76,7 +76,7 @@ public class InvoiceValidator {
             }
             
             if (inv.Due_Date__c == null && inv.Invoice_Date__c != null) {
-                inv.Due_Date__c = inv.Invoice_Date__c.addDays(30);
+                inv.Due_Date__c = inv.Invoice_Date__c.addDays(Constants.DEFAULT_INVOICE_DUE_DAYS);
             }
             
             if (inv.Tax_Rate__c == null) {
@@ -94,22 +94,26 @@ public class InvoiceValidator {
      * @param invoices List of invoice records to process
      */
     public static void calculateTaxAmounts(List<Invoice__c> invoices) {
-        
+        if (invoices == null || invoices.isEmpty()) {
+            return;
+        }
+
         Set<Id> accountIds = new Set<Id>();
         for (Invoice__c inv : invoices) {
             if (inv.Account__c != null) {
                 accountIds.add(inv.Account__c);
             }
         }
-        
+
         if (accountIds.isEmpty()) {
             return;
         }
         
         Map<Id, Account> accountsMap = new Map<Id, Account>([
-            SELECT Id, BillingState, BillingCountry 
-            FROM Account 
+            SELECT Id, BillingState, BillingCountry
+            FROM Account
             WHERE Id IN :accountIds
+            WITH SECURITY_ENFORCED
         ]);
         
         for (Invoice__c inv : invoices) {
@@ -212,14 +216,7 @@ public class InvoiceValidator {
     }
     
     private static Decimal getTaxRate(String state, String country) {
-        switch on country {
-            when 'Italy' { return 22.0; }
-            when 'Germany' { return 19.0; }
-            when 'France' { return 20.0; }
-            when 'Spain' { return 21.0; }
-            when 'United Kingdom' { return 20.0; }
-            when 'Netherlands' { return 21.0; }
-            when else { return 0.0; }
-        }
+        Decimal taxRate = Constants.TAX_RATES_BY_COUNTRY.get(country);
+        return taxRate != null ? taxRate : Constants.DEFAULT_TAX_RATE;
     }
 }

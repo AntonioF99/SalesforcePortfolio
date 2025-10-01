@@ -8,8 +8,10 @@ public class SubscriptionTriggerHandler implements IHandler {
     
     public void beforeInsert(List<SObject> newRecords) {
         List<Subscription__c> subscriptions = (List<Subscription__c>) newRecords;
-        
+
         SubscriptionValidator.setDefaults(subscriptions);
+        RecordTypeUtils.assignSubscriptionRecordTypes(subscriptions);
+        generateDisplayNames(subscriptions);
         SubscriptionValidator.validateBusinessRules(subscriptions, false);
     }
     
@@ -30,10 +32,10 @@ public class SubscriptionTriggerHandler implements IHandler {
     
     public void afterInsert(Map<Id, SObject> newMap) {
         List<Subscription__c> subscriptions = (List<Subscription__c>) newMap.values();
-        
+
         handleNewSubscriptions(subscriptions);
         updateAccountSubscriptionStats(subscriptions);
-        
+
         // Publish platform events for external integration
         PlatformEventPublisher.publishSubscriptionEvents(subscriptions, 'Created');
     }
@@ -178,5 +180,77 @@ public class SubscriptionTriggerHandler implements IHandler {
             System.debug('Queuing invoice generation for ' + subscriptionIds.size() + ' subscriptions');
             // TODO: STORY-028 - Automated billing system integration
         }
+    }
+
+    /*
+     * @description Generates meaningful display names for subscriptions using Account and Price Plan data
+     * @param subscriptions List of subscription records to update
+     */
+    private void generateDisplayNames(List<Subscription__c> subscriptions) {
+
+        // Collect IDs for bulk queries
+        Set<Id> accountIds = new Set<Id>();
+        Set<Id> pricePlanIds = new Set<Id>();
+
+        for (Subscription__c sub : subscriptions) {
+            if (sub.Account__c != null) {
+                accountIds.add(sub.Account__c);
+            }
+            if (sub.Price_Plan__c != null) {
+                pricePlanIds.add(sub.Price_Plan__c);
+            }
+        }
+
+        // Bulk query related data
+        Map<Id, Account> accountMap = new Map<Id, Account>();
+        Map<Id, Price_Plan__c> pricePlanMap = new Map<Id, Price_Plan__c>();
+
+        if (!accountIds.isEmpty()) {
+            try {
+                accountMap = new Map<Id, Account>([
+                    SELECT Id, Name FROM Account
+                    WHERE Id IN :accountIds
+                    WITH SECURITY_ENFORCED
+                ]);
+            } catch (QueryException e) {
+                System.debug('Error querying accounts: ' + e.getMessage());
+            }
+        }
+
+        if (!pricePlanIds.isEmpty()) {
+            try {
+                pricePlanMap = new Map<Id, Price_Plan__c>([
+                    SELECT Id, Name FROM Price_Plan__c
+                    WHERE Id IN :pricePlanIds
+                    WITH SECURITY_ENFORCED
+                ]);
+            } catch (QueryException e) {
+                System.debug('Error querying price plans: ' + e.getMessage());
+            }
+        }
+
+        // Generate display names and set directly on records
+        String currentDate = Datetime.now().format('MMM yyyy');
+        Long timestamp = System.currentTimeMillis();
+
+        for (Subscription__c sub : subscriptions) {
+            String accountName = 'Unknown Account';
+            String pricePlanName = 'Unknown Plan';
+
+            if (sub.Account__c != null && accountMap.containsKey(sub.Account__c)) {
+                accountName = accountMap.get(sub.Account__c).Name;
+            }
+
+            if (sub.Price_Plan__c != null && pricePlanMap.containsKey(sub.Price_Plan__c)) {
+                pricePlanName = pricePlanMap.get(sub.Price_Plan__c).Name;
+            }
+
+            String displayName = accountName + ' - ' + pricePlanName + ' - ' + currentDate + ' - ' + (timestamp++);
+
+            // Set display name directly on the record (beforeInsert)
+            sub.Display_Name__c = displayName;
+        }
+
+        System.debug('Generated display names for ' + subscriptions.size() + ' subscriptions');
     }
 }

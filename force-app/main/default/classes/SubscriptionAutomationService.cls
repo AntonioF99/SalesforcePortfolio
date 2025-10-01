@@ -47,8 +47,8 @@ public class SubscriptionAutomationService {
         Map<Id, Contact> accountContactMap = new Map<Id, Contact>();
         try {
             List<Contact> contacts = [
-                SELECT Id, AccountId, Email FROM Contact 
-                WHERE AccountId IN :accountIds 
+                SELECT Id, AccountId, Email FROM Contact
+                WHERE AccountId IN :accountIds
                 AND Email != null
                 WITH SECURITY_ENFORCED
                 ORDER BY AccountId, CreatedDate ASC
@@ -83,7 +83,7 @@ public class SubscriptionAutomationService {
             if (sub.Account__c != null && !accountsToUpdateMap.containsKey(sub.Account__c)) {
                 accountsToUpdateMap.put(sub.Account__c, new Account(
                     Id = sub.Account__c,
-                    Subscription_Status__c = 'Active Customer',
+                    Subscription_Status__c = Constants.ACCOUNT_STATUS_ACTIVE_CUSTOMER,
                     Last_Subscription_Date__c = sub.Start_Date__c
                 ));
             }
@@ -96,16 +96,25 @@ public class SubscriptionAutomationService {
         
         if (!welcomeEmails.isEmpty() && !Test.isRunningTest()) {
             System.debug('Sending ' + welcomeEmails.size() + ' welcome emails');
-            Messaging.SendEmailResult[] results = Messaging.sendEmail(welcomeEmails);
-            
-            for (Messaging.SendEmailResult result : results) {
-                if (result.isSuccess()) {
-                    System.debug('Email sent successfully');
-                } else {
-                    for (Messaging.SendEmailError error : result.getErrors()) {
-                        System.debug(LoggingLevel.ERROR, 'Email error: ' + error.getMessage());
+
+            try {
+                Messaging.SendEmailResult[] results = Messaging.sendEmail(welcomeEmails);
+
+                for (Messaging.SendEmailResult result : results) {
+                    if (result.isSuccess()) {
+                        System.debug('Email sent successfully');
+                    } else {
+                        for (Messaging.SendEmailError error : result.getErrors()) {
+                            System.debug(LoggingLevel.ERROR, 'Email error (non-blocking): ' + error.getMessage());
+                        }
                     }
                 }
+            } catch (Exception emailException) {
+                // Log email failure but don't stop the automation process
+                System.debug(LoggingLevel.ERROR, 'Email sending failed (non-blocking): ' + emailException.getMessage());
+
+                // Continue with rest of automation - email failure shouldn't block subscription creation
+                System.debug('Continuing with subscription automation despite email failure');
             }
         } else if (Test.isRunningTest()) {
             System.debug('Test context: Skipping actual email send for ' + welcomeEmails.size() + ' emails');
@@ -306,11 +315,11 @@ public class SubscriptionAutomationService {
     private static String getAccountStatus(String subscriptionStatus) {
         
         switch on subscriptionStatus {
-            when 'Active' { return 'Active Customer'; }
-            when 'Trial' { return 'Trial Customer'; }
-            when 'Suspended' { return 'At Risk'; }
-            when 'Cancelled' { return 'Former Customer'; }
-            when else { return 'Prospect'; }
+            when 'Active' { return Constants.ACCOUNT_STATUS_ACTIVE_CUSTOMER; }
+            when 'Trial' { return Constants.ACCOUNT_STATUS_TRIAL_CUSTOMER; }
+            when 'Suspended' { return Constants.ACCOUNT_STATUS_AT_RISK; }
+            when 'Cancelled' { return Constants.ACCOUNT_STATUS_FORMER_CUSTOMER; }
+            when else { return Constants.ACCOUNT_STATUS_PROSPECT; }
         }
     }
 }

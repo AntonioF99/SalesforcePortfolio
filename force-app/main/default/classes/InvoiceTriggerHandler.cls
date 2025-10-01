@@ -10,6 +10,7 @@ public class InvoiceTriggerHandler implements IHandler {
         List<Invoice__c> invoices = (List<Invoice__c>) newRecords;
         
         InvoiceValidator.setDefaults(invoices);
+        RecordTypeUtils.assignInvoiceRecordTypes(invoices);
         InvoiceValidator.calculateTaxAmounts(invoices);
         InvoiceValidator.validateBusinessRules(invoices, false);
         InvoiceValidator.generateInvoiceNumbers(invoices);
