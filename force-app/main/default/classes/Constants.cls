@@ -98,6 +98,35 @@ public class Constants {
     public static final String CANCELLATION_REASON_OTHER = 'Other';
     
     // =============================================================================
+    // ACCOUNT STATUS VALUES
+    // =============================================================================
+    public static final String ACCOUNT_STATUS_PROSPECT = 'Prospect';
+    public static final String ACCOUNT_STATUS_TRIAL_CUSTOMER = 'Trial Customer';
+    public static final String ACCOUNT_STATUS_ACTIVE_CUSTOMER = 'Active Customer';
+    public static final String ACCOUNT_STATUS_AT_RISK = 'At Risk';
+    public static final String ACCOUNT_STATUS_FORMER_CUSTOMER = 'Former Customer';
+    
+    // =============================================================================
+    // DEFAULT VALUES & CONFIGURATION
+    // =============================================================================
+    public static final Integer DEFAULT_INVOICE_DUE_DAYS = 30;
+    public static final Integer DEFAULT_TRIAL_DAYS = 14;
+    public static final Integer MAX_TRIAL_DAYS = 365;
+    public static final Decimal DEFAULT_TAX_RATE = 0.0;
+    
+    // Tax rates by country
+    public static final Map<String, Decimal> TAX_RATES_BY_COUNTRY = new Map<String, Decimal>{
+        'Italy' => 22.0,
+        'Germany' => 19.0,
+        'France' => 20.0,
+        'Spain' => 21.0,
+        'United Kingdom' => 20.0,
+        'Netherlands' => 21.0,
+        'Japan' => 10.0,
+        'United States' => 0.0  // Sales tax varies by state
+    };
+    
+    // =============================================================================
     // FIELD API NAMES (for dynamic SOQL and validation)
     // =============================================================================
     public static final String FIELD_STATUS = 'Status__c';
