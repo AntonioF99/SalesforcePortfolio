@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">
+    <sharingCriteriaRules>
+        <fullName>Share_Enterprise_Accounts</fullName>
+        <accessLevel>Edit</accessLevel>
+        <accountSettings>
+            <caseAccessLevel>Edit</caseAccessLevel>
+            <contactAccessLevel>Edit</contactAccessLevel>
+            <opportunityAccessLevel>Edit</opportunityAccessLevel>
+        </accountSettings>
+        <booleanFilter>1 OR 2</booleanFilter>
+        <criteriaItems>
+            <field>Type</field>
+            <operation>equals</operation>
+            <value>Customer - Channel</value>
+        </criteriaItems>
+        <criteriaItems>
+            <field>AnnualRevenue</field>
+            <operation>greaterThan</operation>
+            <value>100000</value>
+        </criteriaItems>
+        <label>Share Enterprise Accounts</label>
+        <sharedTo>
+            <role>Sales_Manager</role>
+        </sharedTo>
+    </sharingCriteriaRules>
+    <sharingOwnerRules>
+        <fullName>Sales_Manager_Access</fullName>
+        <accessLevel>Edit</accessLevel>
+        <accountSettings>
+            <caseAccessLevel>Edit</caseAccessLevel>
+            <contactAccessLevel>Edit</contactAccessLevel>
+            <opportunityAccessLevel>Edit</opportunityAccessLevel>
+        </accountSettings>
+        <label>Sales Manager Access to Subordinate Accounts</label>
+        <sharedFrom>
+            <role>Sales_Representative</role>
+        </sharedFrom>
+        <sharedTo>
+            <role>Sales_Manager</role>
+            <roleAndSubordinates>true</roleAndSubordinates>
+        </sharedTo>
+    </sharingOwnerRules>
+</SharingRules>

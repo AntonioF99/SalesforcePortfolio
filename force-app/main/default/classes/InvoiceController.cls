@@ -7,9 +7,7 @@ public with sharing class InvoiceController {
     
     @AuraEnabled(cacheable=false)
     public static Invoice__c getInvoiceWithRelated(Id invoiceId) {
-        PerformanceMonitor.PerformanceSnapshot baseline = new PerformanceMonitor.PerformanceSnapshot();
-        
-        Invoice__c result = [
+        return [
             SELECT Id, Name, 
                    Account__c, Account__r.Name, Account__r.Type,
                    Status__c,
@@ -27,9 +25,6 @@ public with sharing class InvoiceController {
             WITH SECURITY_ENFORCED
             LIMIT 1
         ];
-        
-        PerformanceMonitor.logPerformanceMetrics('InvoiceController.getInvoiceWithRelated', baseline);
-        return result;
     }
     
     // These methods are no longer needed but kept for LWC compatibility
@@ -47,9 +42,7 @@ public with sharing class InvoiceController {
     
     @AuraEnabled(cacheable=true)
     public static List<Invoice__c> getInvoicesByAccount(Id accountId) {
-        PerformanceMonitor.PerformanceSnapshot baseline = new PerformanceMonitor.PerformanceSnapshot();
-        
-        List<Invoice__c> results = [
+        return [
             SELECT Id, Name, 
                    Account__c, Account__r.Name,
                    Status__c,
@@ -64,16 +57,11 @@ public with sharing class InvoiceController {
             ORDER BY Invoice_Date__c DESC
             LIMIT 100
         ];
-        
-        PerformanceMonitor.logPerformanceMetrics('InvoiceController.getInvoicesByAccount', baseline);
-        return results;
     }
     
-    @AuraEnabled(cacheable=true) 
+    @AuraEnabled(cacheable=true)
     public static List<Invoice__c> getOverdueInvoices() {
-        PerformanceMonitor.PerformanceSnapshot baseline = new PerformanceMonitor.PerformanceSnapshot();
-        
-        List<Invoice__c> results = [
+        return [
             SELECT Id, Name,
                    Account__c, Account__r.Name,
                    Status__c,
@@ -87,13 +75,6 @@ public with sharing class InvoiceController {
             ORDER BY Due_Date__c ASC
             LIMIT 50
         ];
-        
-        PerformanceMonitor.logPerformanceMetrics('InvoiceController.getOverdueInvoices', baseline);
-        return results;
     }
     
-    @AuraEnabled
-    public static Map<String, Object> getPerformanceStats() {
-        return PerformanceMonitor.getCurrentUsage();
-    }
 }

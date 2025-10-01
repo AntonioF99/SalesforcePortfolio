@@ -17,15 +17,9 @@ public class SubscriptionValidator {
             Constants.SUBSCRIPTION_STATUS_CANCELLED
         },
         Constants.SUBSCRIPTION_STATUS_ACTIVE => new Set<String>{
-            Constants.SUBSCRIPTION_STATUS_SUSPENDED, 
             Constants.SUBSCRIPTION_STATUS_CANCELLED
         },
-        Constants.SUBSCRIPTION_STATUS_SUSPENDED => new Set<String>{
-            Constants.SUBSCRIPTION_STATUS_ACTIVE, 
-            Constants.SUBSCRIPTION_STATUS_CANCELLED
-        },
-        Constants.SUBSCRIPTION_STATUS_CANCELLED => new Set<String>(),
-        Constants.SUBSCRIPTION_STATUS_EXPIRED => new Set<String>()
+        Constants.SUBSCRIPTION_STATUS_CANCELLED => new Set<String>()
     };
     
     private static final Set<String> STATUSES_REQUIRING_REASON = new Set<String>{

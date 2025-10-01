@@ -12,9 +12,7 @@ public class Constants {
     public static final String SUBSCRIPTION_STATUS_DRAFT = 'Draft';
     public static final String SUBSCRIPTION_STATUS_TRIAL = 'Trial';
     public static final String SUBSCRIPTION_STATUS_ACTIVE = 'Active';
-    public static final String SUBSCRIPTION_STATUS_SUSPENDED = 'Suspended';
     public static final String SUBSCRIPTION_STATUS_CANCELLED = 'Cancelled';
-    public static final String SUBSCRIPTION_STATUS_EXPIRED = 'Expired';
     
     // Subscription Status Sets for Validation Logic
     public static final Set<String> SUBSCRIPTION_ACTIVE_STATUSES = new Set<String>{
@@ -23,8 +21,7 @@ public class Constants {
     };
     
     public static final Set<String> SUBSCRIPTION_TERMINAL_STATUSES = new Set<String>{
-        SUBSCRIPTION_STATUS_CANCELLED,
-        SUBSCRIPTION_STATUS_EXPIRED
+        SUBSCRIPTION_STATUS_CANCELLED
     };
     
     // =============================================================================
@@ -202,9 +199,7 @@ public class Constants {
             SUBSCRIPTION_STATUS_DRAFT,
             SUBSCRIPTION_STATUS_TRIAL,
             SUBSCRIPTION_STATUS_ACTIVE,
-            SUBSCRIPTION_STATUS_SUSPENDED,
-            SUBSCRIPTION_STATUS_CANCELLED,
-            SUBSCRIPTION_STATUS_EXPIRED
+            SUBSCRIPTION_STATUS_CANCELLED
         };
     }
     
