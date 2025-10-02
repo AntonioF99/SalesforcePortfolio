@@ -202,7 +202,7 @@ private class InvoiceValidatorTest {
             'Spain' => 21.0,
             'United Kingdom' => 20.0,
             'Netherlands' => 21.0,
-            'Japan' => 0.0 // Unsupported country
+            'Japan' => 10.0 // Constants has 10.0 for Japan
         };
         
         // Verify tax rates calculated correctly

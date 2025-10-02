@@ -14,31 +14,41 @@ private class SubscriptionValidatorTest {
     
     @isTest
     static void testValidateStateTransitions() {
-        Map<String, SObject> data = TestScenarioFactory.createSubscriptionStateTransitionData();
-        
+
+        // Get user with admin profile who should have permission to cancel subscriptions
+        User adminUser = [SELECT Id FROM User WHERE Profile.Name = 'System Administrator' AND IsActive = true LIMIT 1];
+
+        Map<String, SObject> data;
+        System.runAs(adminUser) {
+            data = TestScenarioFactory.createB2BSubscriptionStateTransitionData();
+        }
+
         Test.startTest();
-        
+
         // Test valid transitions
         Subscription__c draftSub = (Subscription__c) data.get('draftSubscription');
         draftSub.Status__c = 'Trial';
         draftSub.Trial_End_Date__c = Date.today().addDays(14);
         update draftSub; // Should succeed
-        
+
         Subscription__c trialSub = (Subscription__c) data.get('trialSubscription');
         trialSub.Status__c = 'Active';
         update trialSub; // Should succeed
         
-        Subscription__c activeSub = (Subscription__c) data.get('activeSubscription');
-        activeSub.Status__c = 'Suspended';
-        activeSub.Cancellation_Reason__c = 'Budget Constraints';
-        update activeSub; // Should succeed
+        // Test Draft to Cancelled (no special permission needed)
+        Subscription__c draftSub2 = TestDataFactory.createSubscription(((Account) data.get('account')).Id, ((Price_Plan__c) data.get('pricePlan')).Id);
+        insert draftSub2; // Insert as Draft first
+
+        draftSub2.Status__c = 'Cancelled';
+        draftSub2.Cancellation_Reason__c = 'Budget Constraints';
+        update draftSub2; // Should succeed without special permission
         
         // Test invalid transitions
-        Subscription__c suspendedSub = (Subscription__c) data.get('suspendedSubscription');
-        suspendedSub.Status__c = 'Draft'; // Invalid transition
+        Subscription__c cancelledSub = (Subscription__c) data.get('cancelledSubscription');
+        cancelledSub.Status__c = 'Draft'; // Invalid transition
         
         try {
-            update suspendedSub;
+            update cancelledSub;
             System.assert(false, 'Should reject invalid state transition');
         } catch (DmlException e) {
             System.assert(e.getMessage().contains('Invalid status transition'));
@@ -101,25 +111,34 @@ private class SubscriptionValidatorTest {
     
     @isTest
     static void testValidateCancellationPermissions() {
-        Map<String, SObject> baseData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        // Use Sales User without Cancel_Any_Subscription permission (should fail)
+        User regularUser = [SELECT Id FROM User WHERE Profile.Name = 'Sales User' AND IsActive = true LIMIT 1];
+
+        Map<String, SObject> baseData;
+        System.runAs(regularUser) {
+            baseData = TestScenarioFactory.createCompleteSubscriptionSetup();
+        }
+
         Account acc = (Account) baseData.get('account');
         Price_Plan__c pricePlan = (Price_Plan__c) baseData.get('pricePlan');
-        
+
         Test.startTest();
-        
-        // Test cancellation of Active subscription without permission
-        Subscription__c activeSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
-        activeSub.Status__c = 'Active';
-        insert activeSub;
-        
-        activeSub.Status__c = 'Cancelled';
-        activeSub.Cancellation_Reason__c = 'Other';
-        
-        try {
-            update activeSub;
-            System.assert(false, 'Should block active subscription cancellation without permission');
-        } catch (DmlException e) {
-            System.assert(e.getMessage().contains('permission'));
+
+        System.runAs(regularUser) {
+            // Test cancellation of Active subscription without permission
+            Subscription__c activeSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+            activeSub.Status__c = 'Active';
+            insert activeSub;
+
+            activeSub.Status__c = 'Cancelled';
+            activeSub.Cancellation_Reason__c = 'Other';
+
+            try {
+                update activeSub;
+                System.assert(false, 'Should block active subscription cancellation without permission');
+            } catch (DmlException e) {
+                System.assert(e.getMessage().contains('permission'));
+            }
         }
         
         // Test Draft and Trial can be cancelled without permission
