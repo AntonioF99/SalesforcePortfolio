@@ -22,5 +22,5 @@
     )
 )</errorConditionFormula>
     <errorDisplayField>Due_Date__c</errorDisplayField>
-    <errorMessage>Due Date must be consistent with selected Payment Terms. Use "Calculate Due Date" button or adjust manually.</errorMessage>
+    <errorMessage>Due Date must be consistent with selected Payment Terms (Net 15 = +15 days, Net 30 = +30 days, Net 45 = +45 days, Due on Receipt = same day).</errorMessage>
 </ValidationRule>

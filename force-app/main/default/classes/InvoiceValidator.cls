@@ -6,7 +6,10 @@
  */
 public class InvoiceValidator {
     
-    private static final Set<String> LOCKED_STATUSES = new Set<String>{'Paid', 'Voided'};
+    private static final Set<String> LOCKED_STATUSES = new Set<String>{
+        Constants.INVOICE_STATUS_PAID,
+        Constants.INVOICE_STATUS_VOIDED
+    };
     private static final Set<String> PROTECTED_FIELDS = new Set<String>{
         'Tax_Rate__c', 'Balance_Due__c', 'Due_Date__c', 'Invoice_Date__c', 'Status__c'
     };
@@ -68,7 +71,7 @@ public class InvoiceValidator {
         for (Invoice__c inv : invoices) {
             
             if (String.isBlank(inv.Status__c)) {
-                inv.Status__c = 'Draft';
+                inv.Status__c = Constants.INVOICE_STATUS_DRAFT;
             }
             
             if (inv.Invoice_Date__c == null) {
@@ -76,7 +79,7 @@ public class InvoiceValidator {
             }
             
             if (inv.Due_Date__c == null && inv.Invoice_Date__c != null) {
-                inv.Due_Date__c = inv.Invoice_Date__c.addDays(Constants.DEFAULT_INVOICE_DUE_DAYS);
+                inv.Due_Date__c = calculateDueDateFromPaymentTerms(inv);
             }
             
             if (inv.Tax_Rate__c == null) {
@@ -143,7 +146,8 @@ public class InvoiceValidator {
         Set<Id> invoiceIds = new Set<Id>();
         
         for (Invoice__c inv : invoices) {
-            if (inv.Status__c == 'Sent' || inv.Status__c == 'Paid') {
+            if (inv.Status__c == Constants.INVOICE_STATUS_SENT ||
+                inv.Status__c == Constants.INVOICE_STATUS_PAID) {
                 invoiceIds.add(inv.Id);
             }
         }
@@ -218,5 +222,38 @@ public class InvoiceValidator {
     private static Decimal getTaxRate(String state, String country) {
         Decimal taxRate = Constants.TAX_RATES_BY_COUNTRY.get(country);
         return taxRate != null ? taxRate : Constants.DEFAULT_TAX_RATE;
+    }
+
+    /**
+     * @description Calculates Due Date based on Payment Terms and Invoice Date
+     * @param inv Invoice record with Invoice_Date__c and Payment_Terms__c
+     * @return Calculated due date
+     */
+    private static Date calculateDueDateFromPaymentTerms(Invoice__c inv) {
+        if (inv.Invoice_Date__c == null) {
+            return Date.today().addDays(Constants.DEFAULT_INVOICE_DUE_DAYS);
+        }
+
+        if (String.isBlank(inv.Payment_Terms__c)) {
+            return inv.Invoice_Date__c.addDays(Constants.DEFAULT_INVOICE_DUE_DAYS);
+        }
+
+        switch on inv.Payment_Terms__c {
+            when 'Net 15' {
+                return inv.Invoice_Date__c.addDays(15);
+            }
+            when 'Net 30' {
+                return inv.Invoice_Date__c.addDays(30);
+            }
+            when 'Net 45' {
+                return inv.Invoice_Date__c.addDays(45);
+            }
+            when 'Due on Receipt' {
+                return inv.Invoice_Date__c;
+            }
+            when else {
+                return inv.Invoice_Date__c.addDays(Constants.DEFAULT_INVOICE_DUE_DAYS);
+            }
+        }
     }
 }

@@ -12,7 +12,7 @@ public class TestDataFactory {
     public static Account createAccount() {
         counter++;
         String uniqueId = String.valueOf(System.currentTimeMillis() + counter);
-        
+
         return new Account(
             Name = 'Test Account ' + counter,
             BillingStreet = 'Via Roma ' + counter,
@@ -21,6 +21,24 @@ public class TestDataFactory {
             BillingCountry = 'Italy',
             Phone = '+39 02 1234' + uniqueId.right(4),
             Industry = 'Technology'
+        );
+    }
+
+    /**
+     * @description Creates a Contact record for testing
+     * @param accountId The Account to associate the Contact with
+     * @return Contact record (not inserted)
+     */
+    public static Contact createContact(Id accountId) {
+        counter++;
+        String uniqueId = String.valueOf(System.currentTimeMillis() + counter);
+
+        return new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact ' + counter,
+            Email = 'test.contact' + counter + '@example.com',
+            Phone = '+39 02 9876' + uniqueId.right(4),
+            AccountId = accountId
         );
     }
     

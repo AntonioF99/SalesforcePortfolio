@@ -7,19 +7,33 @@
 @isTest
 public class TestScenarioFactory {
     
+    /**
+     * @description Ensures a Contact exists for the Account (for email Flow testing)
+     * @param accountId Account to check for Contact
+     */
+    private static void ensureContactExists(Id accountId) {
+        List<Contact> existingContacts = [SELECT Id FROM Contact WHERE AccountId = :accountId LIMIT 1];
+        if (existingContacts.isEmpty()) {
+            Contact contact = TestDataFactory.createContact(accountId);
+            insert contact;
+        }
+    }
+
     public static Invoice__c createDraftInvoice(Id accountId) {
+        ensureContactExists(accountId);
         Invoice__c invoice = TestDataFactory.createInvoice(accountId);
         insert invoice;
         return invoice;
     }
     
     public static Invoice__c createInvoiceWithLineItems(Id accountId) {
+        ensureContactExists(accountId);
         Invoice__c invoice = TestDataFactory.createInvoice(accountId);
         insert invoice;
-        
+
         Invoice_Line_Item__c lineItem = TestDataFactory.createInvoiceLineItem(invoice.Id);
         insert lineItem;
-        
+
         return invoice;
     }
     
@@ -99,19 +113,23 @@ public class TestScenarioFactory {
     public static Map<String, SObject> createCompleteSubscriptionSetup() {
         Account acc = TestDataFactory.createAccount();
         insert acc;
-        
+
+        Contact contact = TestDataFactory.createContact(acc.Id);
+        insert contact;
+
         Product__c product = TestDataFactory.createProduct();
         insert product;
-        
+
         Price_Plan__c pricePlan = TestDataFactory.createPricePlan(product.Id);
         insert pricePlan;
-        
+
         Subscription__c subscription = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         insert subscription;
-        
+
         return new Map<String, SObject>{
             'account' => acc,
-            'product' => product, 
+            'contact' => contact,
+            'product' => product,
             'pricePlan' => pricePlan,
             'subscription' => subscription
         };

@@ -1,0 +1,55 @@
+<messaging:emailTemplate subject="URGENT: Invoice {!relatedTo.Name} is Overdue" recipientType="Contact" relatedToType="Invoice__c">
+    <messaging:htmlEmailBody >
+        <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background-color: #D32F2F; color: white; padding: 20px; text-align: center; }
+                    .urgent-badge { background-color: #FF5722; color: white; padding: 5px 10px; border-radius: 3px; font-weight: bold; }
+                    .content { padding: 20px; background-color: #fff3f3; }
+                    .invoice-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #D32F2F; }
+                    .amount { font-size: 24px; font-weight: bold; color: #D32F2F; }
+                    .warning { background-color: #FFF9C4; padding: 15px; margin: 15px 0; border-left: 4px solid #FBC02D; }
+                    .footer { padding: 15px; text-align: center; font-size: 12px; color: #666; }
+                    .button { display: inline-block; padding: 12px 24px; background-color: #D32F2F; color: white; text-decoration: none; border-radius: 4px; margin: 15px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1><span class="urgent-badge">URGENT</span> Overdue Invoice</h1>
+                    </div>
+                    <div class="content">
+                        <p>Dear {!recipient.FirstName},</p>
+
+                        <p><strong>This is an urgent notice regarding an overdue payment.</strong></p>
+
+                        <div class="invoice-details">
+                            <h3>Overdue Invoice Details</h3>
+                            <p><strong>Invoice Number:</strong> {!relatedTo.Name}</p>
+                            <p><strong>Invoice Date:</strong> <apex:outputText value="{0,date,dd/MM/yyyy}"><apex:param value="{!relatedTo.Invoice_Date__c}" /></apex:outputText></p>
+                            <p><strong>Due Date:</strong> <apex:outputText value="{0,date,dd/MM/yyyy}"><apex:param value="{!relatedTo.Due_Date__c}" /></apex:outputText></p>
+                            <p class="amount">Amount Overdue: €{!relatedTo.Total_Amount__c}</p>
+                        </div>
+
+                        <div class="warning">
+                            <p><strong>⚠️ Action Required</strong></p>
+                            <p>Your payment is now overdue. Please process payment immediately to avoid service interruptions and potential late fees.</p>
+                        </div>
+
+                        <p>If you have already made this payment, please disregard this notice. If you are experiencing difficulties with payment, please contact us immediately to discuss payment arrangements.</p>
+
+                        <p><strong>Contact Information:</strong><br/>
+                        Email: billing@yourcompany.com<br/>
+                        Phone: +39 XXX XXX XXXX</p>
+                    </div>
+                    <div class="footer">
+                        <p>This is an automated message. Please do not reply to this email.</p>
+                        <p>&copy; 2025 Your Company. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+        </html>
+    </messaging:htmlEmailBody>
+</messaging:emailTemplate>
