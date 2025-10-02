@@ -135,11 +135,21 @@ public class SlackNotificationService {
     }
     
     /**
-     * @description Retrieves Slack webhook URL from custom settings
+     * @description Retrieves Slack webhook URL from Custom Metadata Type
      */
     private static String getSlackWebhookUrl() {
-        // In a real implementation, retrieve from Custom Setting or Custom Metadata
-        // For demo purposes, return a placeholder that can be configured
-        return System.Label.Slack_Webhook_URL;
+        try {
+            Integration_Setting__mdt slackSetting = [
+                SELECT Webhook_URL__c, Is_Active__c
+                FROM Integration_Setting__mdt
+                WHERE DeveloperName = 'Slack_Notification'
+                AND Is_Active__c = true
+                LIMIT 1
+            ];
+            return slackSetting?.Webhook_URL__c;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'Slack integration setting not configured: ' + e.getMessage());
+            return null;
+        }
     }
 }
