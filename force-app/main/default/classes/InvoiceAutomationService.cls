@@ -47,186 +47,41 @@ public class InvoiceAutomationService {
     }
     
     /**
-     * @description Handles invoice status changes
+     * @description Handles invoice status changes - Creates tasks and updates metrics
+     * Email notifications are handled via Flow for easier maintenance
      * @param invoiceIds Set of invoice IDs with status changes
      */
     public static void processStatusChanges(Set<Id> invoiceIds) {
-        
-        if (invoiceIds.isEmpty()) return;
-        
+
+        if (invoiceIds.isEmpty()) {
+            return;
+        }
+
         List<Invoice__c> invoices = [
-            SELECT Id, Name, Account__c, Account__r.Name, Account__r.OwnerId, Status__c,
+            SELECT Id, Name, Account__c, Account__r.Name, Status__c,
                    Total_Amount__c, Due_Date__c, Invoice_Date__c
-            FROM Invoice__c 
+            FROM Invoice__c
             WHERE Id IN :invoiceIds
             WITH SECURITY_ENFORCED
         ];
-        
-        // Bulk query email templates
-        Map<String, EmailTemplate> templateMap = new Map<String, EmailTemplate>();
-        try {
-            List<EmailTemplate> templates = [
-                SELECT Id, DeveloperName FROM EmailTemplate 
-                WHERE DeveloperName IN ('Invoice_Notification', 'Invoice_Overdue')
-                LIMIT 2
-            ];
-            for (EmailTemplate template : templates) {
-                templateMap.put(template.DeveloperName, template);
-            }
-        } catch (QueryException e) {
-            System.debug('Email templates not found: ' + e.getMessage());
-        }
-        
-        // Bulk query contacts for all accounts
-        Set<Id> accountIds = new Set<Id>();
-        for (Invoice__c invoice : invoices) {
-            accountIds.add(invoice.Account__c);
-        }
-        
-        Map<Id, Contact> accountContactMap = new Map<Id, Contact>();
-        try {
-            List<Contact> contacts = [
-                SELECT Id, AccountId, Email FROM Contact 
-                WHERE AccountId IN :accountIds 
-                AND Email != null
-                ORDER BY AccountId, CreatedDate ASC
-            ];
-            for (Contact contact : contacts) {
-                if (!accountContactMap.containsKey(contact.AccountId)) {
-                    accountContactMap.put(contact.AccountId, contact);
-                }
-            }
-        } catch (QueryException e) {
-            System.debug('Contacts not found: ' + e.getMessage());
-        }
-        
+
         List<Task> statusTasks = new List<Task>();
-        List<Messaging.SingleEmailMessage> statusEmails = new List<Messaging.SingleEmailMessage>();
-        
+
+        // Create tasks based on invoice status
         for (Invoice__c invoice : invoices) {
-            
-            switch on invoice.Status__c {
-                when 'Sent' {
-                    Messaging.SingleEmailMessage sentEmail = createInvoiceSentEmail(invoice, templateMap, accountContactMap);
-                    if (sentEmail != null) {
-                        statusEmails.add(sentEmail);
-                    }
-                }
-                when 'Paid' {
-                    statusTasks.add(createPaymentReceivedTask(invoice));
-                }
-                when 'Overdue' {
-                    statusTasks.add(createOverdueTask(invoice));
-                    Messaging.SingleEmailMessage overdueEmail = createOverdueEmail(invoice, templateMap, accountContactMap);
-                    if (overdueEmail != null) {
-                        statusEmails.add(overdueEmail);
-                    }
-                }
+            if (invoice.Status__c == Constants.INVOICE_STATUS_PAID) {
+                statusTasks.add(createPaymentReceivedTask(invoice));
+            } else if (invoice.Status__c == Constants.INVOICE_STATUS_OVERDUE) {
+                statusTasks.add(createOverdueTask(invoice));
             }
         }
-        
+
         if (!statusTasks.isEmpty()) {
             insert statusTasks;
         }
-        
-        if (!statusEmails.isEmpty() && !Test.isRunningTest()) {
-            Messaging.sendEmail(statusEmails);
-        } else if (Test.isRunningTest()) {
-            System.debug('Test context: Skipping status email send for ' + statusEmails.size() + ' emails');
-        }
-        
+
         // Update account payment metrics
         updateAccountPaymentMetrics(invoices);
-    }
-    
-    /**
-     * @description Creates email notification for sent invoices
-     */
-    private static Messaging.SingleEmailMessage createInvoiceSentEmail(Invoice__c invoice, Map<String, EmailTemplate> templateMap, Map<Id, Contact> accountContactMap) {
-        
-        Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
-        
-        try {
-            // Get invoice email template from bulk query
-            EmailTemplate invoiceTemplate = templateMap.get('Invoice_Notification');
-            if (invoiceTemplate == null) {
-                throw new QueryException('Template not found');
-            }
-            
-            // Get primary contact from bulk query  
-            Contact primaryContact = accountContactMap.get(invoice.Account__c);
-            if (primaryContact == null) {
-                throw new QueryException('Contact not found');
-            }
-            
-            email.setTemplateId(invoiceTemplate.Id);
-            email.setTargetObjectId(primaryContact.Id);
-            email.setWhatId(invoice.Id);
-            email.setSaveAsActivity(true);
-            
-        } catch (QueryException e) {
-            // Fallback: use any available contact from bulk query or return null in test
-            Contact anyContact = accountContactMap.get(invoice.Account__c);
-            if (anyContact != null) {
-                email.setTargetObjectId(anyContact.Id);
-                email.setSubject('Invoice ' + invoice.Name + ' - Payment Due');
-                email.setPlainTextBody('Your invoice ' + invoice.Name + ' for €' + invoice.Total_Amount__c + ' is now due. Please process payment by ' + invoice.Due_Date__c + '.');
-            } else if (Test.isRunningTest()) {
-                return null;
-            } else {
-                // For production, use account owner as fallback - no additional query needed since we have Account__r.OwnerId
-                email.setSubject('Invoice ' + invoice.Name + ' - Payment Due');
-                email.setPlainTextBody('Your invoice ' + invoice.Name + ' for €' + invoice.Total_Amount__c + ' is now due. Please process payment by ' + invoice.Due_Date__c + '.');
-                email.setToAddresses(new String[]{'admin@company.com'});  // Fallback admin email
-            }
-        }
-        
-        return email;
-    }
-    
-    /**
-     * @description Creates overdue email notification
-     */
-    private static Messaging.SingleEmailMessage createOverdueEmail(Invoice__c invoice, Map<String, EmailTemplate> templateMap, Map<Id, Contact> accountContactMap) {
-        
-        Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
-        
-        try {
-            // Get overdue email template from bulk query
-            EmailTemplate overdueTemplate = templateMap.get('Invoice_Overdue');
-            if (overdueTemplate == null) {
-                throw new QueryException('Template not found');
-            }
-            
-            // Get primary contact from bulk query
-            Contact primaryContact = accountContactMap.get(invoice.Account__c);
-            if (primaryContact == null) {
-                throw new QueryException('Contact not found');
-            }
-            
-            email.setTemplateId(overdueTemplate.Id);
-            email.setTargetObjectId(primaryContact.Id);
-            email.setWhatId(invoice.Id);
-            email.setSaveAsActivity(true);
-            
-        } catch (QueryException e) {
-            // Fallback: use any available contact from bulk query or return null in test
-            Contact anyContact = accountContactMap.get(invoice.Account__c);
-            if (anyContact != null) {
-                email.setTargetObjectId(anyContact.Id);
-                email.setSubject('OVERDUE: Invoice ' + invoice.Name);
-                email.setPlainTextBody('Your invoice ' + invoice.Name + ' for €' + invoice.Total_Amount__c + ' is now overdue. Please contact us immediately to resolve this matter.');
-            } else if (Test.isRunningTest()) {
-                return null;
-            } else {
-                // For production, use account owner as fallback - no additional query needed
-                email.setSubject('OVERDUE: Invoice ' + invoice.Name);
-                email.setPlainTextBody('Your invoice ' + invoice.Name + ' for €' + invoice.Total_Amount__c + ' is now overdue. Please contact us immediately to resolve this matter.');
-                email.setToAddresses(new String[]{'admin@company.com'});  // Fallback admin email
-            }
-        }
-        
-        return email;
     }
     
     /**
@@ -279,9 +134,9 @@ public class InvoiceAutomationService {
                    SUM(Total_Amount__c) totalBilled,
                    COUNT_DISTINCT(Id) invoiceCount,
                    AVG(Total_Amount__c) avgInvoiceAmount
-            FROM Invoice__c 
+            FROM Invoice__c
             WHERE Account__c IN :accountIds
-            AND Status__c IN ('Sent', 'Paid', 'Overdue')
+            AND Status__c IN (:Constants.INVOICE_STATUS_SENT, :Constants.INVOICE_STATUS_PAID, :Constants.INVOICE_STATUS_OVERDUE)
             GROUP BY Account__c
         ];
         
