@@ -72,9 +72,11 @@ public class SubscriptionValidator {
             Subscription__c oldSub = oldSubscriptions.get(subId);
             Subscription__c newSub = newSubscriptions.get(subId);
             
-            if (oldSub.Status__c != Constants.SUBSCRIPTION_STATUS_CANCELLED && 
+            // Only check cancellation permission for UPDATE (not INSERT)
+            if (oldSub != null &&
+                oldSub.Status__c != Constants.SUBSCRIPTION_STATUS_CANCELLED &&
                 newSub.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED) {
-                
+
                 if (!SecurityUtils.canCancelSubscription(oldSub)) {
                     newSub.addError('You do not have permission to cancel this subscription');
                 }
@@ -101,7 +103,7 @@ public class SubscriptionValidator {
                 }
             }
             
-            if (sub.Status__c == 'Trial' && sub.Trial_End_Date__c != null) {
+            if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_TRIAL && sub.Trial_End_Date__c != null) {
                 if (sub.Trial_End_Date__c <= Date.today()) {
                     sub.addError('Trial_End_Date__c', 'Trial end date must be in the future');
                 }
@@ -170,7 +172,7 @@ public class SubscriptionValidator {
             Subscription__c oldSub = oldSubscriptions.get(subId);
             Subscription__c newSub = newSubscriptions.get(subId);
             
-            if (oldSub.Status__c != 'Active' && newSub.Status__c == 'Active') {
+            if (oldSub.Status__c != Constants.SUBSCRIPTION_STATUS_ACTIVE && newSub.Status__c == Constants.SUBSCRIPTION_STATUS_ACTIVE) {
                 subscriptionIds.add(subId);
             }
         }

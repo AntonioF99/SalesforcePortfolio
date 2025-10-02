@@ -73,11 +73,11 @@ public class SecurityUtils {
      */
     public static Boolean canCancelSubscription(Subscription__c subscription) {
         // Business rule: Anyone can cancel Draft/Trial, but need permission for Active
-        if (subscription.Status__c == Constants.SUBSCRIPTION_STATUS_DRAFT || 
+        if (subscription.Status__c == Constants.SUBSCRIPTION_STATUS_DRAFT ||
             subscription.Status__c == Constants.SUBSCRIPTION_STATUS_TRIAL) {
             return hasObjectAccess(Constants.SOBJECT_SUBSCRIPTION, 'UPDATE');
         }
-        
+
         // For Active subscriptions, need special permission
         return canCancelAnySubscription();
     }
