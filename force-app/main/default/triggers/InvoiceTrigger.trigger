@@ -1,7 +1,7 @@
 /**
  * @description Main trigger for Invoice__c object
- * @author Antonio F
- * @date 2025-01-XX
+ * @author Antonio Franco
+ * @date 2025-09-09
  * @story STORY-003: Trigger Framework
  */
 trigger InvoiceTrigger on Invoice__c (
