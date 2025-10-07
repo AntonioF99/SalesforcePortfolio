@@ -12,6 +12,7 @@ public class Constants {
     public static final String SUBSCRIPTION_STATUS_DRAFT = 'Draft';
     public static final String SUBSCRIPTION_STATUS_TRIAL = 'Trial';
     public static final String SUBSCRIPTION_STATUS_ACTIVE = 'Active';
+    public static final String SUBSCRIPTION_STATUS_SUSPENDED = 'Suspended';
     public static final String SUBSCRIPTION_STATUS_CANCELLED = 'Cancelled';
     
     // Subscription Status Sets for Validation Logic
@@ -81,6 +82,14 @@ public class Constants {
     public static final String PAYMENT_TERMS_NET_30 = 'Net 30';
     public static final String PAYMENT_TERMS_NET_45 = 'Net 45';
     public static final String PAYMENT_TERMS_DUE_ON_RECEIPT = 'Due on Receipt';
+
+    // =============================================================================
+    // INVOICE LINE ITEM TYPE VALUES
+    // =============================================================================
+    public static final String LINE_ITEM_TYPE_SUBSCRIPTION = 'Subscription';
+    public static final String LINE_ITEM_TYPE_ONE_TIME = 'One-time';
+    public static final String LINE_ITEM_TYPE_ADD_ON = 'Add-on';
+    public static final String LINE_ITEM_TYPE_PROFESSIONAL_SERVICES = 'Professional Services';
     
     // =============================================================================
     // CANCELLATION REASONS
