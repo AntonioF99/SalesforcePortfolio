@@ -105,13 +105,14 @@ public class SubscriptionTriggerHandler implements IHandler {
     private void handleActivatedSubscriptions(List<Subscription__c> activatedSubs) {
         if (!activatedSubs.isEmpty()) {
             System.debug('Processing ' + activatedSubs.size() + ' activated subscriptions');
-            
+
             Set<Id> subscriptionIds = new Set<Id>();
             for (Subscription__c sub : activatedSubs) {
                 subscriptionIds.add(sub.Id);
             }
-            
+
             SubscriptionAutomationService.processStatusChanges(subscriptionIds);
+            SubscriptionAutomationService.generateInvoicesForActiveSubscriptions(subscriptionIds);
         }
     }
     

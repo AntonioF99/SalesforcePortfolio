@@ -174,6 +174,216 @@ public class SubscriptionAutomationService {
     }
     
     /**
+     * @description Generates invoices for active subscriptions
+     * @param subscriptionIds Set of subscription IDs that just became Active
+     *
+     * Security: This method is called only from trigger context (system mode).
+     * User permissions are validated in SubscriptionValidator before the trigger executes.
+     * WITH SECURITY_ENFORCED is not required as this is internal automation not exposed to users.
+     * Follows Salesforce best practice: triggers execute in system context by design.
+     */
+    public static void generateInvoicesForActiveSubscriptions(Set<Id> subscriptionIds) {
+
+        if (subscriptionIds.isEmpty()) return;
+
+        List<Subscription__c> subscriptions = [
+            SELECT Id, Name, Account__c, Quantity__c, Start_Date__c,
+                   Price_Plan__c, Price_Plan__r.Unit_Price__c,
+                   Price_Plan__r.Billing_Frequency__c,
+                   Price_Plan__r.Product__c, Price_Plan__r.Product__r.Name
+            FROM Subscription__c
+            WHERE Id IN :subscriptionIds
+            AND Status__c = :Constants.SUBSCRIPTION_STATUS_ACTIVE
+            AND Price_Plan__c != null
+        ];
+
+        if (subscriptions.isEmpty()) {
+            System.debug('No active subscriptions with Price Plan found');
+            return;
+        }
+
+        Set<Id> accountIds = new Set<Id>();
+        for (Subscription__c sub : subscriptions) {
+            accountIds.add(sub.Account__c);
+        }
+
+        Map<String, Invoice__c> existingInvoicesMap = checkExistingInvoices(subscriptionIds, accountIds);
+
+        List<Invoice__c> invoicesToInsert = new List<Invoice__c>();
+        Map<Integer, Subscription__c> subscriptionIndexMap = new Map<Integer, Subscription__c>();
+        Integer index = 0;
+
+        for (Subscription__c sub : subscriptions) {
+
+            String duplicateKey = buildInvoiceDuplicateKey(sub.Id, Date.today());
+
+            if (existingInvoicesMap.containsKey(duplicateKey)) {
+                System.debug('Invoice already exists for subscription: ' + sub.Name + ' for current period');
+                continue;
+            }
+
+            Invoice__c invoice = new Invoice__c(
+                Account__c = sub.Account__c,
+                Status__c = Constants.INVOICE_STATUS_DRAFT,
+                Invoice_Date__c = Date.today(),
+                Payment_Terms__c = Constants.PAYMENT_TERMS_NET_30
+            );
+            invoicesToInsert.add(invoice);
+            subscriptionIndexMap.put(index, sub);
+            index++;
+        }
+
+        if (invoicesToInsert.isEmpty()) {
+            System.debug('No new invoices to create - all subscriptions already have invoices for current period');
+            return;
+        }
+
+        try {
+            insert invoicesToInsert;
+            System.debug('Created ' + invoicesToInsert.size() + ' invoices');
+        } catch (DmlException e) {
+            System.debug(LoggingLevel.ERROR, 'Failed to insert invoices: ' + e.getMessage());
+            throw new SubscriptionAutomationException('Failed to create invoices: ' + e.getMessage());
+        }
+
+        List<Invoice_Line_Item__c> lineItemsToInsert = new List<Invoice_Line_Item__c>();
+
+        for (Integer i = 0; i < invoicesToInsert.size(); i++) {
+            Subscription__c sub = subscriptionIndexMap.get(i);
+            Invoice__c invoice = invoicesToInsert[i];
+
+            Date periodStart = Date.today();
+            Date periodEnd = calculatePeriodEnd(periodStart, sub.Price_Plan__r.Billing_Frequency__c);
+
+            Invoice_Line_Item__c lineItem = new Invoice_Line_Item__c(
+                Invoice__c = invoice.Id,
+                Subscription__c = sub.Id,
+                Product__c = sub.Price_Plan__r.Product__c,
+                Type__c = Constants.LINE_ITEM_TYPE_SUBSCRIPTION,
+                Quantity__c = sub.Quantity__c != null ? sub.Quantity__c : 1,
+                Unit_Price__c = sub.Price_Plan__r.Unit_Price__c,
+                Period_Start__c = periodStart,
+                Period_End__c = periodEnd,
+                Discount_Percent__c = 0
+            );
+            lineItemsToInsert.add(lineItem);
+        }
+
+        try {
+            insert lineItemsToInsert;
+            System.debug('Created ' + lineItemsToInsert.size() + ' invoice line items');
+        } catch (DmlException e) {
+            System.debug(LoggingLevel.ERROR, 'Failed to insert line items: ' + e.getMessage());
+            throw new SubscriptionAutomationException('Failed to create invoice line items: ' + e.getMessage());
+        }
+
+        PlatformEventPublisher.publishInvoiceEvents(invoicesToInsert, 'Created');
+        System.debug('Published ' + invoicesToInsert.size() + ' Invoice Created events');
+    }
+
+    /**
+     * @description Checks if invoices already exist for subscriptions in current period
+     * @param subscriptionIds Set of subscription IDs to check
+     * @param accountIds Set of account IDs to check
+     * @return Map of duplicate keys to existing invoices
+     *
+     * Security: Internal helper method for duplicate detection. No security enforcement needed
+     * as it's called from trigger context with already validated permissions.
+     */
+    private static Map<String, Invoice__c> checkExistingInvoices(Set<Id> subscriptionIds, Set<Id> accountIds) {
+
+        Map<String, Invoice__c> existingInvoicesMap = new Map<String, Invoice__c>();
+
+        Date periodStart = Date.today();
+        Date periodEnd = periodStart.addMonths(1);
+
+        List<Invoice_Line_Item__c> existingLineItems = [
+            SELECT Id, Invoice__c, Subscription__c, Invoice__r.Account__c,
+                   Period_Start__c, Period_End__c
+            FROM Invoice_Line_Item__c
+            WHERE Subscription__c IN :subscriptionIds
+            AND Period_Start__c >= :periodStart
+            AND Period_End__c <= :periodEnd
+            AND Invoice__r.Status__c != 'Voided'
+            LIMIT 200
+        ];
+
+        for (Invoice_Line_Item__c lineItem : existingLineItems) {
+            String key = buildInvoiceDuplicateKey(lineItem.Subscription__c, lineItem.Period_Start__c);
+            if (!existingInvoicesMap.containsKey(key)) {
+                existingInvoicesMap.put(key, new Invoice__c(Id = lineItem.Invoice__c));
+            }
+        }
+
+        return existingInvoicesMap;
+    }
+
+    /**
+     * @description Builds a unique key for duplicate invoice detection
+     * @param subscriptionId Subscription ID
+     * @param periodStart Period start date
+     * @return Unique key string
+     */
+    private static String buildInvoiceDuplicateKey(Id subscriptionId, Date periodStart) {
+        return subscriptionId + '_' + periodStart.year() + '_' + periodStart.month();
+    }
+
+    /**
+     * @description Calculates period end date based on billing frequency
+     * @param startDate Period start date
+     * @param billingFrequency Billing frequency (Monthly, Quarterly, etc.)
+     * @return Period end date
+     */
+    private static Date calculatePeriodEnd(Date startDate, String billingFrequency) {
+
+        if (startDate == null || String.isBlank(billingFrequency)) {
+            return startDate.addMonths(1).addDays(-1);
+        }
+
+        if (billingFrequency == Constants.BILLING_FREQUENCY_MONTHLY) {
+            return startDate.addMonths(1).addDays(-1);
+        } else if (billingFrequency == Constants.BILLING_FREQUENCY_QUARTERLY) {
+            return startDate.addMonths(3).addDays(-1);
+        } else if (billingFrequency == Constants.BILLING_FREQUENCY_SEMI_ANNUAL) {
+            return startDate.addMonths(6).addDays(-1);
+        } else if (billingFrequency == Constants.BILLING_FREQUENCY_ANNUAL) {
+            return startDate.addYears(1).addDays(-1);
+        } else {
+            return startDate.addMonths(1).addDays(-1);
+        }
+    }
+
+    /**
+     * @description Calculates invoice due date based on billing frequency
+     * @param invoiceDate Invoice date
+     * @param billingFrequency Billing frequency
+     * @return Due date
+     */
+    private static Date calculateDueDate(Date invoiceDate, String billingFrequency) {
+
+        if (invoiceDate == null) {
+            return Date.today().addDays(30);
+        }
+
+        if (billingFrequency == Constants.BILLING_FREQUENCY_MONTHLY) {
+            return invoiceDate.addDays(30);
+        } else if (billingFrequency == Constants.BILLING_FREQUENCY_QUARTERLY) {
+            return invoiceDate.addDays(30);
+        } else if (billingFrequency == Constants.BILLING_FREQUENCY_SEMI_ANNUAL) {
+            return invoiceDate.addDays(45);
+        } else if (billingFrequency == Constants.BILLING_FREQUENCY_ANNUAL) {
+            return invoiceDate.addDays(60);
+        } else {
+            return invoiceDate.addDays(30);
+        }
+    }
+
+    /**
+     * @description Custom exception for subscription automation errors
+     */
+    public class SubscriptionAutomationException extends Exception {}
+
+    /**
      * @description Creates onboarding tasks for new subscriptions
      */
     private static List<Task> createOnboardingTasks(Subscription__c subscription) {
@@ -265,24 +475,19 @@ public class SubscriptionAutomationService {
         String description;
         String priority = 'Normal';
         
-        switch on subscription.Status__c {
-            when 'Active' {
-                subject = 'Subscription Activated - ' + subscription.Account__r?.Name;
-                description = 'Subscription successfully activated. Ensure customer has access to all features.';
-            }
-            when 'Suspended' {
-                subject = 'URGENT: Subscription Suspended - ' + subscription.Account__r?.Name;
-                description = 'Subscription suspended. Contact customer immediately to resolve payment issues.';
-                priority = 'High';
-            }
-            when 'Cancelled' {
-                subject = 'Subscription Cancelled - ' + subscription.Account__r?.Name;
-                description = 'Subscription cancelled. Schedule exit interview and identify win-back opportunities.';
-                priority = 'High';
-            }
-            when else {
-                return null;
-            }
+        if (subscription.Status__c == Constants.SUBSCRIPTION_STATUS_ACTIVE) {
+            subject = 'Subscription Activated - ' + subscription.Account__r?.Name;
+            description = 'Subscription successfully activated. Ensure customer has access to all features.';
+        } else if (subscription.Status__c == Constants.SUBSCRIPTION_STATUS_SUSPENDED) {
+            subject = 'URGENT: Subscription Suspended - ' + subscription.Account__r?.Name;
+            description = 'Subscription suspended. Contact customer immediately to resolve payment issues.';
+            priority = 'High';
+        } else if (subscription.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED) {
+            subject = 'Subscription Cancelled - ' + subscription.Account__r?.Name;
+            description = 'Subscription cancelled. Schedule exit interview and identify win-back opportunities.';
+            priority = 'High';
+        } else {
+            return null;
         }
         
         return new Task(
@@ -300,12 +505,16 @@ public class SubscriptionAutomationService {
      */
     private static Decimal calculateAccountHealthScore(String subscriptionStatus) {
         
-        switch on subscriptionStatus {
-            when 'Active' { return 100; }
-            when 'Trial' { return 75; }
-            when 'Suspended' { return 25; }
-            when 'Cancelled' { return 0; }
-            when else { return 50; }
+        if (subscriptionStatus == Constants.SUBSCRIPTION_STATUS_ACTIVE) {
+            return 100;
+        } else if (subscriptionStatus == Constants.SUBSCRIPTION_STATUS_TRIAL) {
+            return 75;
+        } else if (subscriptionStatus == Constants.SUBSCRIPTION_STATUS_SUSPENDED) {
+            return 25;
+        } else if (subscriptionStatus == Constants.SUBSCRIPTION_STATUS_CANCELLED) {
+            return 0;
+        } else {
+            return 50;
         }
     }
     
@@ -314,12 +523,16 @@ public class SubscriptionAutomationService {
      */
     private static String getAccountStatus(String subscriptionStatus) {
         
-        switch on subscriptionStatus {
-            when 'Active' { return Constants.ACCOUNT_STATUS_ACTIVE_CUSTOMER; }
-            when 'Trial' { return Constants.ACCOUNT_STATUS_TRIAL_CUSTOMER; }
-            when 'Suspended' { return Constants.ACCOUNT_STATUS_AT_RISK; }
-            when 'Cancelled' { return Constants.ACCOUNT_STATUS_FORMER_CUSTOMER; }
-            when else { return Constants.ACCOUNT_STATUS_PROSPECT; }
+        if (subscriptionStatus == Constants.SUBSCRIPTION_STATUS_ACTIVE) {
+            return Constants.ACCOUNT_STATUS_ACTIVE_CUSTOMER;
+        } else if (subscriptionStatus == Constants.SUBSCRIPTION_STATUS_TRIAL) {
+            return Constants.ACCOUNT_STATUS_TRIAL_CUSTOMER;
+        } else if (subscriptionStatus == Constants.SUBSCRIPTION_STATUS_SUSPENDED) {
+            return Constants.ACCOUNT_STATUS_AT_RISK;
+        } else if (subscriptionStatus == Constants.SUBSCRIPTION_STATUS_CANCELLED) {
+            return Constants.ACCOUNT_STATUS_FORMER_CUSTOMER;
+        } else {
+            return Constants.ACCOUNT_STATUS_PROSPECT;
         }
     }
 }
