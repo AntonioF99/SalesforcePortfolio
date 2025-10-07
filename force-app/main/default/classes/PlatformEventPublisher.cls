@@ -103,11 +103,11 @@ public class PlatformEventPublisher {
                 
                 // Create events for critical status changes
                 String eventType = '';
-                if (inv.Status__c == 'Sent') {
-                    eventType = 'Sent';
-                } else if (inv.Status__c == 'Paid') {
-                    eventType = 'Paid';
-                } else if (inv.Status__c == 'Voided') {
+                if (inv.Status__c == Constants.INVOICE_STATUS_SENT) {
+                    eventType = Constants.EVENT_TYPE_SENT;
+                } else if (inv.Status__c == Constants.INVOICE_STATUS_PAID) {
+                    eventType = Constants.EVENT_TYPE_PAID;
+                } else if (inv.Status__c == Constants.INVOICE_STATUS_VOIDED) {
                     eventType = 'Voided';
                 }
                 

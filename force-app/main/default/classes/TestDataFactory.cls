@@ -91,11 +91,11 @@ public class TestDataFactory {
     public static Product__c createProduct() {
         counter++;
         String uniqueId = String.valueOf(System.currentTimeMillis() + counter);
-        
+
         return new Product__c(
             Name = 'Test Product ' + counter,
             Description__c = 'Test product for automated testing',
-            Product_Type__c = 'Recurring',
+            Product_Type__c = 'Subscription',
             Product_Code__c = 'PROD-' + uniqueId,
             Status__c = 'Active'
         );
@@ -107,11 +107,9 @@ public class TestDataFactory {
         return new Price_Plan__c(
             Name = 'Test Price Plan ' + counter,
             Product__c = productId,
-            Price__c = 99.99,
-            Monthly_Price__c = 99.99,
+            Unit_Price__c = 99.99,
             Billing_Frequency__c = 'Monthly',
-            Currency_Code__c = 'USD',
-            Is_Active__c = true
+            Currency_Code__c = 'USD'
         );
     }
     

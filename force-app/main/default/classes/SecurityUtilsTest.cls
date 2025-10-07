@@ -21,7 +21,7 @@ private class SecurityUtilsTest {
         Price_Plan__c testPricePlan = new Price_Plan__c(
             Product__c = testProduct.Id,
             Name = 'Test Price Plan',
-            Price__c = 100.00,
+            Unit_Price__c = 100.00,
             Billing_Frequency__c = 'Monthly'
         );
         insert testPricePlan;
