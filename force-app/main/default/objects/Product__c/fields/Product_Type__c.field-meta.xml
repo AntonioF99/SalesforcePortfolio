@@ -10,19 +10,24 @@
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>
-                <fullName>One-Time</fullName>
-                <default>false</default>
-                <label>One-Time</label>
+                <fullName>Subscription</fullName>
+                <default>true</default>
+                <label>Subscription</label>
             </value>
             <value>
-                <fullName>Recurring</fullName>
+                <fullName>Add-on</fullName>
                 <default>false</default>
-                <label>Recurring</label>
+                <label>Add-on</label>
             </value>
             <value>
-                <fullName>Usage-Based</fullName>
+                <fullName>Professional Services</fullName>
                 <default>false</default>
-                <label>Usage-Based</label>
+                <label>Professional Services</label>
+            </value>
+            <value>
+                <fullName>One-time</fullName>
+                <default>false</default>
+                <label>One-time</label>
             </value>
         </valueSetDefinition>
     </valueSet>
