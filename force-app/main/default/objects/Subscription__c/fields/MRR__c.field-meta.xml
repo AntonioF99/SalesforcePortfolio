@@ -5,10 +5,10 @@
     ISPICKVAL(Status__c, &apos;Active&apos;),
     CASE(
         TEXT(Price_Plan__r.Billing_Frequency__c),
-        &apos;Monthly&apos;, Price_Plan__r.Price__c * Quantity__c,
-        &apos;Quarterly&apos;, (Price_Plan__r.Price__c * Quantity__c) / 3,
-        &apos;Semi-Annual&apos;, (Price_Plan__r.Price__c * Quantity__c) / 6,
-        &apos;Annual&apos;, (Price_Plan__r.Price__c * Quantity__c) / 12,
+        &apos;Monthly&apos;, Price_Plan__r.Unit_Price__c * Quantity__c,
+        &apos;Quarterly&apos;, (Price_Plan__r.Unit_Price__c * Quantity__c) / 3,
+        &apos;Semi-Annual&apos;, (Price_Plan__r.Unit_Price__c * Quantity__c) / 6,
+        &apos;Annual&apos;, (Price_Plan__r.Unit_Price__c * Quantity__c) / 12,
         0
     ),
     0
