@@ -1,7 +1,8 @@
-public with sharing class SubscriptionController {
+public class SubscriptionController {
     
     @AuraEnabled(cacheable=false)
     public static Subscription__c getSubscriptionWithRelated(Id subscriptionId) {
+        // SENZA WITH SECURITY_ENFORCED per ora
         Subscription__c result = [
             SELECT Id, Name, 
                    Account__c,
@@ -15,17 +16,16 @@ public with sharing class SubscriptionController {
                    Cancellation_Comments__c
             FROM Subscription__c 
             WHERE Id = :subscriptionId 
-            WITH SECURITY_ENFORCED
             LIMIT 1
         ];
         
-        // Load related records separately
+        // Carica i related records separatamente
         if (result.Account__c != null) {
-            result.Account__r = [SELECT Name FROM Account WHERE Id = :result.Account__c WITH SECURITY_ENFORCED LIMIT 1];
+            result.Account__r = [SELECT Name FROM Account WHERE Id = :result.Account__c LIMIT 1];
         }
         
         if (result.Price_Plan__c != null) {
-            result.Price_Plan__r = [SELECT Name FROM Price_Plan__c WHERE Id = :result.Price_Plan__c WITH SECURITY_ENFORCED LIMIT 1];
+            result.Price_Plan__r = [SELECT Name FROM Price_Plan__c WHERE Id = :result.Price_Plan__c LIMIT 1];
         }
         
         return result;

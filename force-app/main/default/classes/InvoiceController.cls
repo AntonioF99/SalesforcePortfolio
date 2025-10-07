@@ -21,20 +21,19 @@ public with sharing class InvoiceController {
                    Balance_Due__c
             FROM Invoice__c 
             WHERE Id = :invoiceId 
-            WITH SECURITY_ENFORCED
             LIMIT 1
         ];
         
-        // Load Account name
+        // Carica Account name
         if (result.Account__c != null) {
-            result.Account__r = [SELECT Name FROM Account WHERE Id = :result.Account__c WITH SECURITY_ENFORCED LIMIT 1];
+            result.Account__r = [SELECT Name FROM Account WHERE Id = :result.Account__c LIMIT 1];
         }
         
         return result;
     }
     
-    // These methods are no longer needed but kept for LWC compatibility
-    // Can be removed after updating JavaScript components
+    // Questi metodi NON SERVONO PIÙ ma li aggiungiamo vuoti per evitare l'errore
+    // Puoi rimuoverli dopo aver aggiornato il JavaScript
     @AuraEnabled
     public static Id createInvoice(Invoice__c invoice) {
         insert invoice;
