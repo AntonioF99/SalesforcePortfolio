@@ -7,19 +7,33 @@
 @isTest
 public class TestScenarioFactory {
     
+    /**
+     * @description Ensures a Contact exists for the Account (for email Flow testing)
+     * @param accountId Account to check for Contact
+     */
+    private static void ensureContactExists(Id accountId) {
+        List<Contact> existingContacts = [SELECT Id FROM Contact WHERE AccountId = :accountId LIMIT 1];
+        if (existingContacts.isEmpty()) {
+            Contact contact = TestDataFactory.createContact(accountId);
+            insert contact;
+        }
+    }
+
     public static Invoice__c createDraftInvoice(Id accountId) {
+        ensureContactExists(accountId);
         Invoice__c invoice = TestDataFactory.createInvoice(accountId);
         insert invoice;
         return invoice;
     }
     
     public static Invoice__c createInvoiceWithLineItems(Id accountId) {
+        ensureContactExists(accountId);
         Invoice__c invoice = TestDataFactory.createInvoice(accountId);
         insert invoice;
-        
+
         Invoice_Line_Item__c lineItem = TestDataFactory.createInvoiceLineItem(invoice.Id);
         insert lineItem;
-        
+
         return invoice;
     }
     
@@ -99,19 +113,23 @@ public class TestScenarioFactory {
     public static Map<String, SObject> createCompleteSubscriptionSetup() {
         Account acc = TestDataFactory.createAccount();
         insert acc;
-        
+
+        Contact contact = TestDataFactory.createContact(acc.Id);
+        insert contact;
+
         Product__c product = TestDataFactory.createProduct();
         insert product;
-        
+
         Price_Plan__c pricePlan = TestDataFactory.createPricePlan(product.Id);
         insert pricePlan;
-        
+
         Subscription__c subscription = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         insert subscription;
-        
+
         return new Map<String, SObject>{
             'account' => acc,
-            'product' => product, 
+            'contact' => contact,
+            'product' => product,
             'pricePlan' => pricePlan,
             'subscription' => subscription
         };
@@ -276,21 +294,67 @@ public class TestScenarioFactory {
         activeSub.Status__c = 'Active';
         subscriptions.add(activeSub);
         
-        Subscription__c suspendedSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
-        suspendedSub.Status__c = 'Suspended';
-        suspendedSub.Cancellation_Reason__c = 'Budget Constraints';
-        subscriptions.add(suspendedSub);
+        Subscription__c cancelledSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+        cancelledSub.Status__c = 'Cancelled';
+        cancelledSub.Cancellation_Reason__c = 'Budget Constraints';
+        subscriptions.add(cancelledSub);
         
         insert subscriptions;
         
         baseData.put('draftSubscription', subscriptions[0]);
         baseData.put('trialSubscription', subscriptions[1]);
         baseData.put('activeSubscription', subscriptions[2]);
-        baseData.put('suspendedSubscription', subscriptions[3]);
+        baseData.put('cancelledSubscription', subscriptions[3]);
         
         return baseData;
     }
-    
+
+    /*
+     * @description Creates subscription state transition data with B2B account for testing
+     * @return Map with subscriptions in different states using B2B record type
+     */
+    public static Map<String, SObject> createB2BSubscriptionStateTransitionData() {
+        Map<String, SObject> baseData = createCompleteSubscriptionSetup();
+        Account acc = (Account) baseData.get('account');
+
+        // Ensure this is a B2B account to match B2B Cancellation_Reason__c values
+        acc.Type = 'Customer - Direct';
+        acc.NumberOfEmployees = 50;
+        update acc;
+
+        Price_Plan__c pricePlan = (Price_Plan__c) baseData.get('pricePlan');
+
+        List<Subscription__c> subscriptions = new List<Subscription__c>();
+
+        subscriptions.add(TestDataFactory.createSubscription(acc.Id, pricePlan.Id));
+
+        Subscription__c trialSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+        trialSub.Status__c = 'Trial';
+        trialSub.Trial_End_Date__c = Date.today().addDays(14);
+        subscriptions.add(trialSub);
+
+        Subscription__c activeSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+        activeSub.Status__c = 'Active';
+        subscriptions.add(activeSub);
+
+        Subscription__c cancelledSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+        subscriptions.add(cancelledSub);
+
+        insert subscriptions;
+
+        // Update cancelled subscription separately to avoid permission validation during insert
+        subscriptions[3].Status__c = 'Cancelled';
+        subscriptions[3].Cancellation_Reason__c = 'Budget Constraints';  // B2B value
+        update subscriptions[3];
+
+        baseData.put('draftSubscription', subscriptions[0]);
+        baseData.put('trialSubscription', subscriptions[1]);
+        baseData.put('activeSubscription', subscriptions[2]);
+        baseData.put('cancelledSubscription', subscriptions[3]);
+
+        return baseData;
+    }
+
     /*
      * @description Creates invoices for permission testing scenarios
      * @param accountId Account to associate with

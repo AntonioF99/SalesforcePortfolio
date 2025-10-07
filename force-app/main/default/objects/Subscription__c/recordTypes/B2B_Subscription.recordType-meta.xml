@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>B2B_Subscription</fullName>
+    <active>true</active>
+    <businessProcess>Standard</businessProcess>
+    <description>Business-to-Business subscriptions with contract management focus</description>
+    <label>B2B Subscription</label>
+    <picklistValues>
+        <picklist>Status__c</picklist>
+        <values>
+            <fullName>Draft</fullName>
+            <default>true</default>
+        </values>
+        <values>
+            <fullName>Trial</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Active</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Cancelled</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Cancellation_Reason__c</picklist>
+        <values>
+            <fullName>Budget Constraints</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Contract Ended</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Missing Features</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Price Too High</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Switched to Competitor</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Technical Issues</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+</RecordType>

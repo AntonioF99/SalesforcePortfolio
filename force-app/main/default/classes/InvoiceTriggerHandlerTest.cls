@@ -19,14 +19,18 @@ private class InvoiceTriggerHandlerTest {
         
         Test.startTest();
         
-        Invoice__c inv = new Invoice__c(Account__c = acc.Id);
+        Invoice__c inv = new Invoice__c(
+            Account__c = acc.Id,
+            Due_Date__c = Date.today().addDays(30)
+        );
         insert inv;
         
-        inv = [SELECT Status__c, Tax_Rate__c FROM Invoice__c WHERE Id = :inv.Id];
+        inv = [SELECT Status__c, Tax_Rate__c, Invoice_Date__c, Due_Date__c FROM Invoice__c WHERE Id = :inv.Id];
         System.assertEquals('Draft', inv.Status__c, 'Handler should orchestrate defaults');
         System.assertEquals(22.0, inv.Tax_Rate__c, 'Handler should orchestrate tax calculation');
         
         inv.Payment_Terms__c = 'Net 45';
+        inv.Due_Date__c = inv.Invoice_Date__c.addDays(45); // Consistent with Net 45 terms
         update inv;
         
         delete inv;
@@ -98,16 +102,14 @@ private class InvoiceTriggerHandlerTest {
                         'Handler should propagate validator messages');
         }
         
+        // Test that updates succeed (no security validation in triggers)
         Invoice__c paidInv = TestScenarioFactory.createPaidInvoice(acc.Id);
         
         paidInv.Tax_Rate__c = 25.0;
-        try {
-            update paidInv;
-            System.assert(false, 'Handler should propagate permission errors');
-        } catch (DmlException e) {
-            System.assert(e.getMessage().contains('permission'),
-                        'Handler should propagate permission errors');
-        }
+        update paidInv; // Should succeed - security validation moved to SecurityUtils
+        
+        Invoice__c updatedInv = [SELECT Tax_Rate__c FROM Invoice__c WHERE Id = :paidInv.Id];
+        System.assertEquals(25.0, updatedInv.Tax_Rate__c, 'Update should succeed');
         
         Test.stopTest();
     }

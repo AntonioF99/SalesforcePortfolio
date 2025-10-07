@@ -7,16 +7,23 @@
 public class SubscriptionValidator {
     
     private static final Map<String, Set<String>> VALID_TRANSITIONS = new Map<String, Set<String>>{
-        'Draft' => new Set<String>{'Trial', 'Active','Cancelled'},
-        'Trial' => new Set<String>{'Active', 'Cancelled'},
-        'Active' => new Set<String>{'Suspended', 'Cancelled'},
-        'Suspended' => new Set<String>{'Active', 'Cancelled'},
-        'Cancelled' => new Set<String>(),
-        'Expired' => new Set<String>()
+        Constants.SUBSCRIPTION_STATUS_DRAFT => new Set<String>{
+            Constants.SUBSCRIPTION_STATUS_TRIAL, 
+            Constants.SUBSCRIPTION_STATUS_ACTIVE,
+            Constants.SUBSCRIPTION_STATUS_CANCELLED
+        },
+        Constants.SUBSCRIPTION_STATUS_TRIAL => new Set<String>{
+            Constants.SUBSCRIPTION_STATUS_ACTIVE, 
+            Constants.SUBSCRIPTION_STATUS_CANCELLED
+        },
+        Constants.SUBSCRIPTION_STATUS_ACTIVE => new Set<String>{
+            Constants.SUBSCRIPTION_STATUS_CANCELLED
+        },
+        Constants.SUBSCRIPTION_STATUS_CANCELLED => new Set<String>()
     };
     
     private static final Set<String> STATUSES_REQUIRING_REASON = new Set<String>{
-        'Cancelled', 'Suspended'
+        Constants.SUBSCRIPTION_STATUS_CANCELLED
     };
     
     /*
@@ -61,17 +68,17 @@ public class SubscriptionValidator {
     public static void validateCancellationPermissions(Map<Id, Subscription__c> oldSubscriptions, 
                                                     Map<Id, Subscription__c> newSubscriptions) {
         
-        Boolean canCancelAny = FeatureManagement.checkPermission('Cancel_Any_Subscription');
-        
-        if (!canCancelAny) {
-            for (Id subId : newSubscriptions.keySet()) {
-                Subscription__c oldSub = oldSubscriptions.get(subId);
-                Subscription__c newSub = newSubscriptions.get(subId);
-                
-                if (oldSub.Status__c != 'Cancelled' && newSub.Status__c == 'Cancelled') {
-                    if (oldSub.Status__c != 'Draft' && oldSub.Status__c != 'Trial') {
-                        newSub.addError('You do not have permission to cancel active subscriptions');
-                    }
+        for (Id subId : newSubscriptions.keySet()) {
+            Subscription__c oldSub = oldSubscriptions.get(subId);
+            Subscription__c newSub = newSubscriptions.get(subId);
+            
+            // Only check cancellation permission for UPDATE (not INSERT)
+            if (oldSub != null &&
+                oldSub.Status__c != Constants.SUBSCRIPTION_STATUS_CANCELLED &&
+                newSub.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED) {
+
+                if (!SecurityUtils.canCancelSubscription(oldSub)) {
+                    newSub.addError('You do not have permission to cancel this subscription');
                 }
             }
         }
@@ -80,8 +87,8 @@ public class SubscriptionValidator {
     public static void validateDeletionPermissions(List<Subscription__c> subscriptions) {
         
         for (Subscription__c sub : subscriptions) {
-            if (sub.Status__c == 'Active') {
-                sub.addError('Cannot delete active subscriptions. Cancel first, then delete.');
+            if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_ACTIVE) {
+                sub.addError(Constants.ERROR_CANNOT_DELETE_ACTIVE);
             }
         }
     }
@@ -96,13 +103,13 @@ public class SubscriptionValidator {
                 }
             }
             
-            if (sub.Status__c == 'Trial' && sub.Trial_End_Date__c != null) {
+            if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_TRIAL && sub.Trial_End_Date__c != null) {
                 if (sub.Trial_End_Date__c <= Date.today()) {
                     sub.addError('Trial_End_Date__c', 'Trial end date must be in the future');
                 }
                 
-                if (sub.Trial_End_Date__c > Date.today().addDays(14)) {
-                    sub.addError('Trial_End_Date__c', 'Trial period cannot exceed 14 days');
+                if (sub.Trial_End_Date__c > Date.today().addDays(Constants.DEFAULT_TRIAL_DAYS)) {
+                    sub.addError('Trial_End_Date__c', 'Trial period cannot exceed ' + Constants.DEFAULT_TRIAL_DAYS + ' days');
                 }
             }
             
@@ -110,9 +117,9 @@ public class SubscriptionValidator {
                 sub.addError('Quantity__c', 'Quantity must be greater than zero');
             }
             
-            if (sub.Status__c == 'Active') {
+            if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_ACTIVE) {
                 if (sub.Price_Plan__c == null) {
-                    sub.addError('Price_Plan__c', 'Price plan is required for active subscriptions');
+                    sub.addError(Constants.FIELD_PRICE_PLAN, Constants.ERROR_PRICE_PLAN_REQUIRED);
                 }
                 
                 if (sub.Start_Date__c == null) {
@@ -131,19 +138,25 @@ public class SubscriptionValidator {
         for (Subscription__c sub : subscriptions) {
             
             if (String.isBlank(sub.Status__c)) {
-                sub.Status__c = 'Draft';
+                sub.Status__c = Constants.SUBSCRIPTION_STATUS_DRAFT;
             }
             
             if (sub.Start_Date__c == null) {
                 sub.Start_Date__c = Date.today();
             }
             
-            if (sub.Status__c == 'Trial' && sub.Trial_End_Date__c == null) {
-                sub.Trial_End_Date__c = Date.today().addDays(14);
+            if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_TRIAL && sub.Trial_End_Date__c == null) {
+                sub.Trial_End_Date__c = Date.today().addDays(Constants.DEFAULT_TRIAL_DAYS);
+            }
+            
+            // Auto-populate Cancellation Date when Status = Cancelled
+            if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED && sub.Cancellation_Date__c == null) {
+                sub.Cancellation_Date__c = Date.today();
             }
         }
     }
-    
+
+
     /*
      * @description Identifies subscriptions that need invoice generation
      * @param oldSubscriptions Map of old subscription records
@@ -159,7 +172,7 @@ public class SubscriptionValidator {
             Subscription__c oldSub = oldSubscriptions.get(subId);
             Subscription__c newSub = newSubscriptions.get(subId);
             
-            if (oldSub.Status__c != 'Active' && newSub.Status__c == 'Active') {
+            if (oldSub.Status__c != Constants.SUBSCRIPTION_STATUS_ACTIVE && newSub.Status__c == Constants.SUBSCRIPTION_STATUS_ACTIVE) {
                 subscriptionIds.add(subId);
             }
         }

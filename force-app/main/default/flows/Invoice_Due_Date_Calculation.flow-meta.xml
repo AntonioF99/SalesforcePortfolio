@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <description>Automatically calculates Due Date based on Payment Terms when Invoice Date changes</description>
+    <label>Invoice Due Date Calculation</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>176</locationX>
+        <locationY>0</locationY>
+        <object>Invoice__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <description>The invoice record being processed</description>
+        <name>triggerInvoice</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Invoice__c</objectType>
+    </variables>
+    <formulas>
+        <description>Calculate due date based on payment terms</description>
+        <name>CalculatedDueDate</name>
+        <dataType>Date</dataType>
+        <expression>CASE(
+    TEXT({!triggerInvoice.Payment_Terms__c}),
+    "Net 15", {!triggerInvoice.Invoice_Date__c} + 15,
+    "Net 30", {!triggerInvoice.Invoice_Date__c} + 30,
+    "Net 45", {!triggerInvoice.Invoice_Date__c} + 45,
+    "Due on Receipt", {!triggerInvoice.Invoice_Date__c},
+    {!triggerInvoice.Invoice_Date__c} + 30
+)</expression>
+    </formulas>
+    <decisions>
+        <description>Only update if Invoice Date is populated and Due Date is blank</description>
+        <name>Should_Calculate_Due_Date</name>
+        <label>Should Calculate Due Date?</label>
+        <locationX>176</locationX>
+        <locationY>79</locationY>
+        <defaultConnectorLabel>No Update Needed</defaultConnectorLabel>
+        <rules>
+            <name>Invoice_Date_Exists_and_Due_Date_Blank</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>triggerInvoice.Invoice_Date__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>triggerInvoice.Due_Date__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Due_Date</targetReference>
+            </connector>
+            <label>Can Calculate Due Date</label>
+        </rules>
+    </decisions>
+    <assignments>
+        <description>Set the calculated due date on the invoice</description>
+        <name>Set_Due_Date</name>
+        <label>Set Due Date</label>
+        <locationX>176</locationX>
+        <locationY>158</locationY>
+        <assignmentItems>
+            <assignToReference>triggerInvoice.Due_Date__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>CalculatedDueDate</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+</Flow>

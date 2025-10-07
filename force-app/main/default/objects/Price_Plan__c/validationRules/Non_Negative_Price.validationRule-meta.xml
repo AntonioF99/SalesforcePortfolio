@@ -2,7 +2,7 @@
 <ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Non_Negative_Price</fullName>
     <active>true</active>
-    <errorConditionFormula>Price__c &lt; 0</errorConditionFormula>
-    <errorDisplayField>Price__c</errorDisplayField>
-    <errorMessage>Price must be greater than or equal to zero</errorMessage>
+    <errorConditionFormula>Unit_Price__c &lt; 0</errorConditionFormula>
+    <errorDisplayField>Unit_Price__c</errorDisplayField>
+    <errorMessage>Unit Price must be greater than or equal to zero</errorMessage>
 </ValidationRule>

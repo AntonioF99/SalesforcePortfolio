@@ -10,6 +10,7 @@ public class InvoiceTriggerHandler implements IHandler {
         List<Invoice__c> invoices = (List<Invoice__c>) newRecords;
         
         InvoiceValidator.setDefaults(invoices);
+        RecordTypeUtils.assignInvoiceRecordTypes(invoices);
         InvoiceValidator.calculateTaxAmounts(invoices);
         InvoiceValidator.validateBusinessRules(invoices, false);
         InvoiceValidator.generateInvoiceNumbers(invoices);
@@ -34,6 +35,9 @@ public class InvoiceTriggerHandler implements IHandler {
         
         updateAccountInvoiceStats(invoices);
         handleNewInvoices(invoices);
+        
+        // Publish platform events for external integration
+        PlatformEventPublisher.publishInvoiceEvents(invoices, 'Created');
     }
     
     public void afterUpdate(Map<Id, SObject> oldMap, Map<Id, SObject> newMap) {
@@ -47,6 +51,10 @@ public class InvoiceTriggerHandler implements IHandler {
         if (!needingRecalc.isEmpty()) {
             storeInvoicesForRecalculation(needingRecalc);
         }
+        
+        // Publish consolidated platform events for status changes and updates
+        PlatformEventPublisher.publishInvoiceStatusChanges(invoices, oldInvoices);
+        // Note: publishInvoiceStatusChanges now handles both status changes and general updates
     }
     
     public void afterDelete(Map<Id, SObject> oldMap) {
@@ -93,24 +101,39 @@ public class InvoiceTriggerHandler implements IHandler {
     private void handleSentInvoices(List<Invoice__c> sentInvoices) {
         if (!sentInvoices.isEmpty()) {
             System.debug('Processing ' + sentInvoices.size() + ' newly sent invoices');
-            // TODO: STORY-007 - Platform Events for real-time notifications
-            // TODO: STORY-008 - PDF generation service integration
+            
+            Set<Id> invoiceIds = new Set<Id>();
+            for (Invoice__c inv : sentInvoices) {
+                invoiceIds.add(inv.Id);
+            }
+            
+            InvoiceAutomationService.processStatusChanges(invoiceIds);
         }
     }
     
     private void handlePaidInvoices(List<Invoice__c> paidInvoices) {
         if (!paidInvoices.isEmpty()) {
             System.debug('Processing ' + paidInvoices.size() + ' newly paid invoices');
-            // TODO: STORY-009 - Payment processing integration
-            // TODO: STORY-010 - Customer success team notifications
+            
+            Set<Id> invoiceIds = new Set<Id>();
+            for (Invoice__c inv : paidInvoices) {
+                invoiceIds.add(inv.Id);
+            }
+            
+            InvoiceAutomationService.processStatusChanges(invoiceIds);
         }
     }
     
     private void handleOverdueInvoices(List<Invoice__c> overdueInvoices) {
         if (!overdueInvoices.isEmpty()) {
             System.debug('Processing ' + overdueInvoices.size() + ' newly overdue invoices');
-            // TODO: STORY-011 - Automated dunning process
-            // TODO: STORY-012 - Collections workflow automation
+            
+            Set<Id> invoiceIds = new Set<Id>();
+            for (Invoice__c inv : overdueInvoices) {
+                invoiceIds.add(inv.Id);
+            }
+            
+            InvoiceAutomationService.processStatusChanges(invoiceIds);
         }
     }
     

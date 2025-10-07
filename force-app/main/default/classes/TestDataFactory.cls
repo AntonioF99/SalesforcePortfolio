@@ -12,7 +12,7 @@ public class TestDataFactory {
     public static Account createAccount() {
         counter++;
         String uniqueId = String.valueOf(System.currentTimeMillis() + counter);
-        
+
         return new Account(
             Name = 'Test Account ' + counter,
             BillingStreet = 'Via Roma ' + counter,
@@ -21,6 +21,24 @@ public class TestDataFactory {
             BillingCountry = 'Italy',
             Phone = '+39 02 1234' + uniqueId.right(4),
             Industry = 'Technology'
+        );
+    }
+
+    /**
+     * @description Creates a Contact record for testing
+     * @param accountId The Account to associate the Contact with
+     * @return Contact record (not inserted)
+     */
+    public static Contact createContact(Id accountId) {
+        counter++;
+        String uniqueId = String.valueOf(System.currentTimeMillis() + counter);
+
+        return new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact ' + counter,
+            Email = 'test.contact' + counter + '@example.com',
+            Phone = '+39 02 9876' + uniqueId.right(4),
+            AccountId = accountId
         );
     }
     
@@ -73,11 +91,11 @@ public class TestDataFactory {
     public static Product__c createProduct() {
         counter++;
         String uniqueId = String.valueOf(System.currentTimeMillis() + counter);
-        
+
         return new Product__c(
             Name = 'Test Product ' + counter,
             Description__c = 'Test product for automated testing',
-            Product_Type__c = 'Recurring',
+            Product_Type__c = 'Subscription',
             Product_Code__c = 'PROD-' + uniqueId,
             Status__c = 'Active'
         );
@@ -89,21 +107,36 @@ public class TestDataFactory {
         return new Price_Plan__c(
             Name = 'Test Price Plan ' + counter,
             Product__c = productId,
-            Price__c = 99.99,
+            Unit_Price__c = 99.99,
             Billing_Frequency__c = 'Monthly',
-            Currency_Code__c = 'USD',
-            Is_Active__c = true
+            Currency_Code__c = 'USD'
         );
     }
     
     public static Subscription__c createSubscription(Id accountId, Id pricePlanId) {
+        // Get B2B record type for testing
+        Id recordTypeId = Schema.SObjectType.Subscription__c.getRecordTypeInfosByDeveloperName().get('B2B_Subscription').getRecordTypeId();
+
         return new Subscription__c(
             Account__c = accountId,
             Price_Plan__c = pricePlanId,
             Status__c = 'Draft',
             Start_Date__c = Date.today(),
-            End_Date__c = Date.today().addMonths(12)
+            End_Date__c = Date.today().addMonths(12),
+            RecordTypeId = recordTypeId
         );
+    }
+    
+    // Overloaded method for simplified subscription creation
+    public static Subscription__c createSubscription(Id accountId) {
+        // Create a basic price plan if none provided
+        Product__c product = createProduct();
+        insert product;
+        
+        Price_Plan__c pricePlan = createPricePlan(product.Id);
+        insert pricePlan;
+        
+        return createSubscription(accountId, pricePlan.Id);
     }
     
     public static Invoice__c createInvoice(Id accountId) {
@@ -155,5 +188,13 @@ public class TestDataFactory {
     
     public static Integer getUniqueCounter() {
         return ++counter;
+    }
+    
+    // Utility method to generate fake Salesforce IDs for testing
+    public static Id getFakeId(Schema.SObjectType sobjectType) {
+        String sobjectPrefix = sobjectType.getDescribe().getKeyPrefix();
+        String fakeIdPrefix = sobjectPrefix + '0'.repeat(12 - sobjectPrefix.length());
+        String fakeIdSuffix = String.valueOf(Math.random()).substring(2, 5);
+        return Id.valueOf(fakeIdPrefix + fakeIdSuffix);
     }
 }

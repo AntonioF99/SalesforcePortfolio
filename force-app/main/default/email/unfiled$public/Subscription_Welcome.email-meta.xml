@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EmailTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <available>true</available>
+    <encodingKey>UTF-8</encodingKey>
+    <name>Subscription Welcome</name>
+    <style>none</style>
+    <subject>Welcome to your new subscription - {!Subscription__c.Account__r.Name}</subject>
+    <textOnly>Dear {!Contact.FirstName},
+
+Welcome to your new subscription! We're excited to have you as a customer.
+
+Your subscription details:
+- Account: {!Subscription__c.Account__r.Name}
+- Status: {!Subscription__c.Status__c}
+- Subscription: {!Subscription__c.Name}
+- Start Date: {!Subscription__c.Start_Date__c}
+
+Our team will be reaching out soon to help you get started. In the meantime, feel free to contact us if you have any questions.
+
+Best regards,
+The Salesforce Portfolio Team</textOnly>
+    <type>text</type>
+</EmailTemplate>

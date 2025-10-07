@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Price_Plan_Required_Active</fullName>
+    <active>true</active>
+    <description>Price Plan is required when subscription status is Active</description>
+    <errorConditionFormula>AND(
+    ISPICKVAL(Status__c, "Active"),
+    ISBLANK(Price_Plan__c)
+)</errorConditionFormula>
+    <errorDisplayField>Price_Plan__c</errorDisplayField>
+    <errorMessage>Price plan is required for active subscriptions. Please select a price plan before activating.</errorMessage>
+</ValidationRule>

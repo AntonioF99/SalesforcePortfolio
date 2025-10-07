@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <description>Monitors trial subscriptions and creates tasks when trials are about to expire</description>
+    <label>Trial Expiration Monitoring</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>176</locationX>
+        <locationY>0</locationY>
+        <object>Subscription__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <scheduledPaths>
+            <name>Trial_Expiring_Soon</name>
+            <connector>
+                <targetReference>Create_Trial_Follow_Up_Task</targetReference>
+            </connector>
+            <label>Trial Expiring Soon</label>
+            <offsetNumber>2</offsetNumber>
+            <offsetUnit>Days</offsetUnit>
+            <recordField>Trial_End_Date__c</recordField>
+            <timeSource>RecordField</timeSource>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <variables>
+        <description>The subscription record that triggered this flow</description>
+        <name>triggerSubscription</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Subscription__c</objectType>
+    </variables>
+    <recordCreates>
+        <description>Create a follow-up task for trial expiration</description>
+        <name>Create_Trial_Follow_Up_Task</name>
+        <label>Create Trial Follow-Up Task</label>
+        <locationX>176</locationX>
+        <locationY>158</locationX>
+        <inputAssignments>
+            <field>Subject</field>
+            <value>
+                <stringValue>Trial Expiring Soon - Follow Up Required</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Description</field>
+            <value>
+                <stringValue>Trial subscription is expiring in 2 days. Contact customer to discuss conversion to paid plan.</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>WhatId</field>
+            <value>
+                <elementReference>triggerSubscription.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Status</field>
+            <value>
+                <stringValue>Not Started</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Priority</field>
+            <value>
+                <stringValue>High</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>ActivityDate</field>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Task</object>
+    </recordCreates>
+    <decisions>
+        <description>Only create task if subscription is still in Trial status</description>
+        <name>Is_Still_Trial</name>
+        <label>Is Still Trial?</label>
+        <locationX>176</locationX>
+        <locationY>79</locationY>
+        <defaultConnectorLabel>Not Trial</defaultConnectorLabel>
+        <rules>
+            <name>Status_is_Trial</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>triggerSubscription.Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Trial</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Create_Trial_Follow_Up_Task</targetReference>
+            </connector>
+            <label>Still Trial</label>
+        </rules>
+    </decisions>
+</Flow>
