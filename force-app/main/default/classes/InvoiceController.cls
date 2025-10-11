@@ -109,42 +109,49 @@ public with sharing class InvoiceController {
      */
     @AuraEnabled
     public static void sendInvoice(Id invoiceId) {
+        // Guard clause: validate input
         if (invoiceId == null) {
             throw new AuraHandledException('Invoice ID is required');
         }
 
+        // Query invoice with security enforced
+        List<Invoice__c> invoices;
         try {
-            List<Invoice__c> invoices = [
+            invoices = [
                 SELECT Id, Status__c, Reminders_Sent__c, Last_Reminder_Date__c
                 FROM Invoice__c
                 WHERE Id = :invoiceId
                 WITH SECURITY_ENFORCED
                 LIMIT 1
             ];
-
-            if (invoices.isEmpty()) {
-                throw new AuraHandledException('Invoice not found or you do not have access');
-            }
-
-            Invoice__c invoice = invoices[0];
-
-            // Validation: Cannot send reminder if already Paid or Voided
-            if (invoice.Status__c == Constants.INVOICE_STATUS_PAID) {
-                throw new AuraHandledException('Cannot send reminder for an invoice that is already paid');
-            }
-            if (invoice.Status__c == Constants.INVOICE_STATUS_VOIDED) {
-                throw new AuraHandledException('Cannot send reminder for a voided invoice');
-            }
-
-            // Increment reminder counter and update last reminder date
-            invoice.Reminders_Sent__c = (invoice.Reminders_Sent__c == null ? 0 : invoice.Reminders_Sent__c) + 1;
-            invoice.Last_Reminder_Date__c = System.now();
-            update invoice;
-
-        } catch (DmlException e) {
-            throw new AuraHandledException('Error sending reminder: ' + e.getMessage());
         } catch (QueryException e) {
             throw new AuraHandledException('Invoice not found or insufficient permissions');
+        }
+
+        // Early return: check if invoice exists
+        if (invoices.isEmpty()) {
+            throw new AuraHandledException('Invoice not found or you do not have access');
+        }
+
+        Invoice__c invoice = invoices[0];
+
+        // Early return validations: check status before sending
+        if (invoice.Status__c == Constants.INVOICE_STATUS_PAID) {
+            throw new AuraHandledException('Cannot send reminder for an invoice that is already paid');
+        }
+
+        if (invoice.Status__c == Constants.INVOICE_STATUS_VOIDED) {
+            throw new AuraHandledException('Cannot send reminder for a voided invoice');
+        }
+
+        // Happy path: increment reminder counter and update
+        invoice.Reminders_Sent__c = (invoice.Reminders_Sent__c == null ? 0 : invoice.Reminders_Sent__c) + 1;
+        invoice.Last_Reminder_Date__c = System.now();
+
+        try {
+            update invoice;
+        } catch (DmlException e) {
+            throw new AuraHandledException('Error sending reminder: ' + e.getMessage());
         }
     }
 
@@ -155,40 +162,46 @@ public with sharing class InvoiceController {
      */
     @AuraEnabled
     public static void markAsPaid(Id invoiceId) {
+        // Guard clause: validate input
         if (invoiceId == null) {
             throw new AuraHandledException('Invoice ID is required');
         }
 
+        // Query invoice with security enforced
+        Invoice__c invoice;
         try {
-            // Query invoice with security enforced
-            Invoice__c invoice = [
+            invoice = [
                 SELECT Id, Status__c, Balance_Due__c, Total_Amount__c
                 FROM Invoice__c
                 WHERE Id = :invoiceId
                 WITH SECURITY_ENFORCED
                 LIMIT 1
             ];
-
-            // Validation: Cannot mark as paid if status is Draft or Voided
-            if (invoice.Status__c == Constants.INVOICE_STATUS_DRAFT) {
-                throw new AuraHandledException('Cannot mark a draft invoice as paid. Please send it first.');
-            }
-            if (invoice.Status__c == Constants.INVOICE_STATUS_VOIDED) {
-                throw new AuraHandledException('Cannot mark a voided invoice as paid');
-            }
-            if (invoice.Status__c == Constants.INVOICE_STATUS_PAID) {
-                throw new AuraHandledException('Invoice is already marked as paid');
-            }
-
-            // Update status to Paid and set Balance_Due to 0
-            invoice.Status__c = Constants.INVOICE_STATUS_PAID;
-            invoice.Balance_Due__c = 0;
-            update invoice;
-
-        } catch (DmlException e) {
-            throw new AuraHandledException('Error marking invoice as paid: ' + e.getMessage());
         } catch (QueryException e) {
             throw new AuraHandledException('Invoice not found or insufficient permissions');
+        }
+
+        // Early return validations: check status before attempting update
+        if (invoice.Status__c == Constants.INVOICE_STATUS_DRAFT) {
+            throw new AuraHandledException('Cannot mark a draft invoice as paid. Please send it first.');
+        }
+
+        if (invoice.Status__c == Constants.INVOICE_STATUS_VOIDED) {
+            throw new AuraHandledException('Cannot mark a voided invoice as paid');
+        }
+
+        if (invoice.Status__c == Constants.INVOICE_STATUS_PAID) {
+            throw new AuraHandledException('Invoice is already marked as paid');
+        }
+
+        // Happy path: update invoice
+        invoice.Status__c = Constants.INVOICE_STATUS_PAID;
+        invoice.Balance_Due__c = 0;
+
+        try {
+            update invoice;
+        } catch (DmlException e) {
+            throw new AuraHandledException('Error marking invoice as paid: ' + e.getMessage());
         }
     }
 
