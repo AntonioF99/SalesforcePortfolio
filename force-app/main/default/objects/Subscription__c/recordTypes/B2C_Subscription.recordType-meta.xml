@@ -20,6 +20,10 @@
             <default>false</default>
         </values>
         <values>
+            <fullName>Suspended</fullName>
+            <default>false</default>
+        </values>
+        <values>
             <fullName>Cancelled</fullName>
             <default>false</default>
         </values>
