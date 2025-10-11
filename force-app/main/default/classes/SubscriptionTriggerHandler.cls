@@ -11,7 +11,6 @@ public class SubscriptionTriggerHandler implements IHandler {
 
         SubscriptionValidator.setDefaults(subscriptions);
         RecordTypeUtils.assignSubscriptionRecordTypes(subscriptions);
-        generateDisplayNames(subscriptions);
         SubscriptionValidator.validateBusinessRules(subscriptions, false);
     }
     
@@ -77,22 +76,29 @@ public class SubscriptionTriggerHandler implements IHandler {
      * @param oldSubscriptions Map of subscription records before update
      * @param newSubscriptions Map of subscription records after update
      */
-    private void handleStatusTransitions(Map<Id, Subscription__c> oldSubscriptions, 
+    private void handleStatusTransitions(Map<Id, Subscription__c> oldSubscriptions,
                                        Map<Id, Subscription__c> newSubscriptions) {
-        
+
+        // Early return if no data
+        if (oldSubscriptions == null || oldSubscriptions.isEmpty() || newSubscriptions == null || newSubscriptions.isEmpty()) {
+            return;
+        }
+
         List<Subscription__c> activatedSubs = new List<Subscription__c>();
         List<Subscription__c> cancelledSubs = new List<Subscription__c>();
         List<Subscription__c> suspendedSubs = new List<Subscription__c>();
-        
+
         for (Id subId : newSubscriptions.keySet()) {
             Subscription__c oldSub = oldSubscriptions.get(subId);
             Subscription__c newSub = newSubscriptions.get(subId);
             
             if (oldSub.Status__c != newSub.Status__c) {
-                switch on newSub.Status__c {
-                    when 'Active' { activatedSubs.add(newSub); }
-                    when 'Cancelled' { cancelledSubs.add(newSub); }
-                    when 'Suspended' { suspendedSubs.add(newSub); }
+                if (newSub.Status__c == Constants.SUBSCRIPTION_STATUS_ACTIVE) {
+                    activatedSubs.add(newSub);
+                } else if (newSub.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED) {
+                    cancelledSubs.add(newSub);
+                } else if (newSub.Status__c == Constants.SUBSCRIPTION_STATUS_SUSPENDED) {
+                    suspendedSubs.add(newSub);
                 }
             }
         }
@@ -103,56 +109,48 @@ public class SubscriptionTriggerHandler implements IHandler {
     }
     
     private void handleActivatedSubscriptions(List<Subscription__c> activatedSubs) {
-        if (!activatedSubs.isEmpty()) {
-            System.debug('Processing ' + activatedSubs.size() + ' activated subscriptions');
-
-            Set<Id> subscriptionIds = new Set<Id>();
-            for (Subscription__c sub : activatedSubs) {
-                subscriptionIds.add(sub.Id);
-            }
-
-            SubscriptionAutomationService.processStatusChanges(subscriptionIds);
-            SubscriptionAutomationService.generateInvoicesForActiveSubscriptions(subscriptionIds);
+        if (activatedSubs == null || activatedSubs.isEmpty()) {
+            return;
         }
+
+        System.debug('Processing ' + activatedSubs.size() + ' activated subscriptions');
+        Set<Id> subscriptionIds = TriggerUtils.extractIds(activatedSubs);
+
+        SubscriptionAutomationService.processStatusChanges(subscriptionIds);
+        SubscriptionAutomationService.generateInvoicesForActiveSubscriptions(subscriptionIds);
     }
-    
+
     private void handleCancelledSubscriptions(List<Subscription__c> cancelledSubs) {
-        if (!cancelledSubs.isEmpty()) {
-            System.debug('Processing ' + cancelledSubs.size() + ' cancelled subscriptions');
-            
-            Set<Id> subscriptionIds = new Set<Id>();
-            for (Subscription__c sub : cancelledSubs) {
-                subscriptionIds.add(sub.Id);
-            }
-            
-            SubscriptionAutomationService.processStatusChanges(subscriptionIds);
+        if (cancelledSubs == null || cancelledSubs.isEmpty()) {
+            return;
         }
+
+        System.debug('Processing ' + cancelledSubs.size() + ' cancelled subscriptions');
+        Set<Id> subscriptionIds = TriggerUtils.extractIds(cancelledSubs);
+
+        SubscriptionAutomationService.processStatusChanges(subscriptionIds);
     }
-    
+
     private void handleSuspendedSubscriptions(List<Subscription__c> suspendedSubs) {
-        if (!suspendedSubs.isEmpty()) {
-            System.debug('Processing ' + suspendedSubs.size() + ' suspended subscriptions');
-            
-            Set<Id> subscriptionIds = new Set<Id>();
-            for (Subscription__c sub : suspendedSubs) {
-                subscriptionIds.add(sub.Id);
-            }
-            
-            SubscriptionAutomationService.processStatusChanges(subscriptionIds);
+        if (suspendedSubs == null || suspendedSubs.isEmpty()) {
+            return;
         }
+
+        System.debug('Processing ' + suspendedSubs.size() + ' suspended subscriptions');
+        Set<Id> subscriptionIds = TriggerUtils.extractIds(suspendedSubs);
+
+        SubscriptionAutomationService.processStatusChanges(subscriptionIds);
     }
-    
+
     private void handleNewSubscriptions(List<Subscription__c> newSubscriptions) {
-        if (!newSubscriptions.isEmpty()) {
-            System.debug('Processing ' + newSubscriptions.size() + ' new subscriptions');
-            
-            Set<Id> subscriptionIds = new Set<Id>();
-            for (Subscription__c sub : newSubscriptions) {
-                subscriptionIds.add(sub.Id);
-            }
-            
-            SubscriptionAutomationService.processNewSubscriptions(subscriptionIds);
+        if (newSubscriptions == null || newSubscriptions.isEmpty()) {
+            return;
         }
+
+        System.debug('Processing ' + newSubscriptions.size() + ' new subscriptions');
+        Set<Id> subscriptionIds = TriggerUtils.extractIds(newSubscriptions);
+
+        SubscriptionAutomationService.processNewSubscriptions(subscriptionIds);
     }
     
     private void handleDeletedSubscriptions(List<Subscription__c> deletedSubscriptions) {
@@ -183,75 +181,4 @@ public class SubscriptionTriggerHandler implements IHandler {
         }
     }
 
-    /*
-     * @description Generates meaningful display names for subscriptions using Account and Price Plan data
-     * @param subscriptions List of subscription records to update
-     */
-    private void generateDisplayNames(List<Subscription__c> subscriptions) {
-
-        // Collect IDs for bulk queries
-        Set<Id> accountIds = new Set<Id>();
-        Set<Id> pricePlanIds = new Set<Id>();
-
-        for (Subscription__c sub : subscriptions) {
-            if (sub.Account__c != null) {
-                accountIds.add(sub.Account__c);
-            }
-            if (sub.Price_Plan__c != null) {
-                pricePlanIds.add(sub.Price_Plan__c);
-            }
-        }
-
-        // Bulk query related data
-        Map<Id, Account> accountMap = new Map<Id, Account>();
-        Map<Id, Price_Plan__c> pricePlanMap = new Map<Id, Price_Plan__c>();
-
-        if (!accountIds.isEmpty()) {
-            try {
-                accountMap = new Map<Id, Account>([
-                    SELECT Id, Name FROM Account
-                    WHERE Id IN :accountIds
-                    WITH SECURITY_ENFORCED
-                ]);
-            } catch (QueryException e) {
-                System.debug('Error querying accounts: ' + e.getMessage());
-            }
-        }
-
-        if (!pricePlanIds.isEmpty()) {
-            try {
-                pricePlanMap = new Map<Id, Price_Plan__c>([
-                    SELECT Id, Name FROM Price_Plan__c
-                    WHERE Id IN :pricePlanIds
-                    WITH SECURITY_ENFORCED
-                ]);
-            } catch (QueryException e) {
-                System.debug('Error querying price plans: ' + e.getMessage());
-            }
-        }
-
-        // Generate display names and set directly on records
-        String currentDate = Datetime.now().format('MMM yyyy');
-        Long timestamp = System.currentTimeMillis();
-
-        for (Subscription__c sub : subscriptions) {
-            String accountName = 'Unknown Account';
-            String pricePlanName = 'Unknown Plan';
-
-            if (sub.Account__c != null && accountMap.containsKey(sub.Account__c)) {
-                accountName = accountMap.get(sub.Account__c).Name;
-            }
-
-            if (sub.Price_Plan__c != null && pricePlanMap.containsKey(sub.Price_Plan__c)) {
-                pricePlanName = pricePlanMap.get(sub.Price_Plan__c).Name;
-            }
-
-            String displayName = accountName + ' - ' + pricePlanName + ' - ' + currentDate + ' - ' + (timestamp++);
-
-            // Set display name directly on the record (beforeInsert)
-            sub.Display_Name__c = displayName;
-        }
-
-        System.debug('Generated display names for ' + subscriptions.size() + ' subscriptions');
-    }
 }

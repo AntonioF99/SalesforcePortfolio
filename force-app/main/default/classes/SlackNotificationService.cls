@@ -55,19 +55,14 @@ public class SlackNotificationService {
         String subscriptionName = (String) subData.get('subscription_name');
         String status = (String) subData.get('status');
         
-        switch on eventType {
-            when 'Created' {
-                return '🎉 New subscription created: *' + subscriptionName + '* (' + accountName + ')';
-            }
-            when 'StatusChanged' {
-                return '✅ Subscription status changed: *' + subscriptionName + '* (' + accountName + ') → ' + status;
-            }
-            when 'Cancelled' {
-                return '❌ Subscription cancelled: *' + subscriptionName + '* (' + accountName + ')';
-            }
-            when else {
-                return '📋 Subscription updated: *' + subscriptionName + '* (' + accountName + ')';
-            }
+        if (eventType == Constants.EVENT_TYPE_CREATED) {
+            return '🎉 New subscription created: *' + subscriptionName + '* (' + accountName + ')';
+        } else if (eventType == Constants.EVENT_TYPE_STATUS_CHANGED) {
+            return '✅ Subscription status changed: *' + subscriptionName + '* (' + accountName + ') → ' + status;
+        } else if (eventType == Constants.EVENT_TYPE_CANCELLED) {
+            return '❌ Subscription cancelled: *' + subscriptionName + '* (' + accountName + ')';
+        } else {
+            return '📋 Subscription updated: *' + subscriptionName + '* (' + accountName + ')';
         }
     }
     
@@ -82,22 +77,16 @@ public class SlackNotificationService {
         
         String amountStr = totalAmount != null ? '€' + totalAmount.setScale(2) : '';
         
-        switch on eventType {
-            when 'Created' {
-                return '📄 Invoice created: *' + invoiceNumber + '* for ' + accountName + ' - ' + amountStr;
-            }
-            when 'Sent' {
-                return '📧 Invoice sent: *' + invoiceNumber + '* to ' + accountName + ' - ' + amountStr;
-            }
-            when 'Paid' {
-                return '💰 Payment received: *' + invoiceNumber + '* from ' + accountName + ' - ' + amountStr;
-            }
-            when 'Voided' {
-                return '🚫 Invoice voided: *' + invoiceNumber + '* for ' + accountName;
-            }
-            when else {
-                return '📋 Invoice updated: *' + invoiceNumber + '* for ' + accountName;
-            }
+        if (eventType == Constants.EVENT_TYPE_CREATED) {
+            return '📄 Invoice created: *' + invoiceNumber + '* for ' + accountName + ' - ' + amountStr;
+        } else if (eventType == Constants.EVENT_TYPE_SENT) {
+            return '📧 Invoice sent: *' + invoiceNumber + '* to ' + accountName + ' - ' + amountStr;
+        } else if (eventType == Constants.EVENT_TYPE_PAID) {
+            return '💰 Payment received: *' + invoiceNumber + '* from ' + accountName + ' - ' + amountStr;
+        } else if (eventType == Constants.EVENT_TYPE_VOIDED) {
+            return '🚫 Invoice voided: *' + invoiceNumber + '* for ' + accountName;
+        } else {
+            return '📋 Invoice updated: *' + invoiceNumber + '* for ' + accountName;
         }
     }
     

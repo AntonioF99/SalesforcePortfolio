@@ -48,14 +48,6 @@ public class Constants {
     };
     
     // =============================================================================
-    // PRODUCT STATUS VALUES
-    // =============================================================================
-    public static final String PRODUCT_STATUS_DRAFT = 'Draft';
-    public static final String PRODUCT_STATUS_ACTIVE = 'Active';
-    public static final String PRODUCT_STATUS_DISCONTINUED = 'Discontinued';
-    public static final String PRODUCT_STATUS_RETIRED = 'Retired';
-    
-    // =============================================================================
     // PLATFORM EVENT TYPES
     // =============================================================================
     public static final String EVENT_TYPE_CREATED = 'Created';
@@ -63,6 +55,7 @@ public class Constants {
     public static final String EVENT_TYPE_STATUS_CHANGED = 'StatusChanged';
     public static final String EVENT_TYPE_SENT = 'Sent';
     public static final String EVENT_TYPE_PAID = 'Paid';
+    public static final String EVENT_TYPE_VOIDED = 'Voided';
     public static final String EVENT_TYPE_CANCELLED = 'Cancelled';
     public static final String EVENT_TYPE_DELETED = 'Deleted';
     
@@ -84,12 +77,13 @@ public class Constants {
     public static final String PAYMENT_TERMS_DUE_ON_RECEIPT = 'Due on Receipt';
 
     // =============================================================================
-    // INVOICE LINE ITEM TYPE VALUES
+    // LINE ITEM TYPE VALUES
     // =============================================================================
-    public static final String LINE_ITEM_TYPE_SUBSCRIPTION = 'Subscription';
-    public static final String LINE_ITEM_TYPE_ONE_TIME = 'One-time';
     public static final String LINE_ITEM_TYPE_ADD_ON = 'Add-on';
+    public static final String LINE_ITEM_TYPE_SETUP_FEE = 'Setup Fee';
     public static final String LINE_ITEM_TYPE_PROFESSIONAL_SERVICES = 'Professional Services';
+    public static final String LINE_ITEM_TYPE_USAGE = 'Usage';
+    public static final String LINE_ITEM_TYPE_CREDIT = 'Credit';
     
     // =============================================================================
     // CANCELLATION REASONS
@@ -146,7 +140,6 @@ public class Constants {
     // =============================================================================
     public static final String SOBJECT_SUBSCRIPTION = 'Subscription__c';
     public static final String SOBJECT_INVOICE = 'Invoice__c';
-    public static final String SOBJECT_PRODUCT = 'Product__c';
     public static final String SOBJECT_PRICE_PLAN = 'Price_Plan__c';
     public static final String SOBJECT_INVOICE_LINE_ITEM = 'Invoice_Line_Item__c';
     
@@ -208,6 +201,7 @@ public class Constants {
             SUBSCRIPTION_STATUS_DRAFT,
             SUBSCRIPTION_STATUS_TRIAL,
             SUBSCRIPTION_STATUS_ACTIVE,
+            SUBSCRIPTION_STATUS_SUSPENDED,
             SUBSCRIPTION_STATUS_CANCELLED
         };
     }
