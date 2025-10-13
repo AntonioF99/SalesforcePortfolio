@@ -8,15 +8,20 @@ public class SubscriptionValidator {
     
     private static final Map<String, Set<String>> VALID_TRANSITIONS = new Map<String, Set<String>>{
         Constants.SUBSCRIPTION_STATUS_DRAFT => new Set<String>{
-            Constants.SUBSCRIPTION_STATUS_TRIAL, 
+            Constants.SUBSCRIPTION_STATUS_TRIAL,
             Constants.SUBSCRIPTION_STATUS_ACTIVE,
             Constants.SUBSCRIPTION_STATUS_CANCELLED
         },
         Constants.SUBSCRIPTION_STATUS_TRIAL => new Set<String>{
-            Constants.SUBSCRIPTION_STATUS_ACTIVE, 
+            Constants.SUBSCRIPTION_STATUS_ACTIVE,
             Constants.SUBSCRIPTION_STATUS_CANCELLED
         },
         Constants.SUBSCRIPTION_STATUS_ACTIVE => new Set<String>{
+            Constants.SUBSCRIPTION_STATUS_SUSPENDED,
+            Constants.SUBSCRIPTION_STATUS_CANCELLED
+        },
+        Constants.SUBSCRIPTION_STATUS_SUSPENDED => new Set<String>{
+            Constants.SUBSCRIPTION_STATUS_ACTIVE,
             Constants.SUBSCRIPTION_STATUS_CANCELLED
         },
         Constants.SUBSCRIPTION_STATUS_CANCELLED => new Set<String>()

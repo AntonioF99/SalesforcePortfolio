@@ -181,25 +181,21 @@ public class InvoiceValidator {
     }
     
     private static void validateStatusSpecificRules(Invoice__c inv) {
-        
-        switch on inv.Status__c {
-            when 'Sent' {
-                if (inv.Subtotal__c == null || inv.Subtotal__c <= 0) {
-                    inv.addError('Status__c', 'Cannot send invoice with zero or negative subtotal');
-                }
-                if (inv.Due_Date__c == null) {
-                    inv.addError('Due_Date__c', 'Due date is required for sent invoices');
-                }
+
+        if (inv.Status__c == Constants.INVOICE_STATUS_SENT) {
+            if (inv.Subtotal__c == null || inv.Subtotal__c <= 0) {
+                inv.addError('Status__c', 'Cannot send invoice with zero or negative subtotal');
             }
-            when 'Paid' {
-                if (inv.Balance_Due__c != null && inv.Balance_Due__c > 0) {
-                    inv.addError('Status__c', 'Cannot mark as paid while balance due is positive');
-                }
+            if (inv.Due_Date__c == null) {
+                inv.addError('Due_Date__c', 'Due date is required for sent invoices');
             }
-            when 'Overdue' {
-                if (inv.Due_Date__c == null || inv.Due_Date__c >= Date.today()) {
-                    inv.addError('Status__c', 'Cannot mark as overdue if due date is not past');
-                }
+        } else if (inv.Status__c == Constants.INVOICE_STATUS_PAID) {
+            if (inv.Balance_Due__c != null && inv.Balance_Due__c > 0) {
+                inv.addError('Status__c', 'Cannot mark as paid while balance due is positive');
+            }
+        } else if (inv.Status__c == Constants.INVOICE_STATUS_OVERDUE) {
+            if (inv.Due_Date__c == null || inv.Due_Date__c >= Date.today()) {
+                inv.addError('Status__c', 'Cannot mark as overdue if due date is not past');
             }
         }
     }
@@ -238,22 +234,16 @@ public class InvoiceValidator {
             return inv.Invoice_Date__c.addDays(Constants.DEFAULT_INVOICE_DUE_DAYS);
         }
 
-        switch on inv.Payment_Terms__c {
-            when 'Net 15' {
-                return inv.Invoice_Date__c.addDays(15);
-            }
-            when 'Net 30' {
-                return inv.Invoice_Date__c.addDays(30);
-            }
-            when 'Net 45' {
-                return inv.Invoice_Date__c.addDays(45);
-            }
-            when 'Due on Receipt' {
-                return inv.Invoice_Date__c;
-            }
-            when else {
-                return inv.Invoice_Date__c.addDays(Constants.DEFAULT_INVOICE_DUE_DAYS);
-            }
+        if (inv.Payment_Terms__c == Constants.PAYMENT_TERMS_NET_15) {
+            return inv.Invoice_Date__c.addDays(15);
+        } else if (inv.Payment_Terms__c == Constants.PAYMENT_TERMS_NET_30) {
+            return inv.Invoice_Date__c.addDays(30);
+        } else if (inv.Payment_Terms__c == Constants.PAYMENT_TERMS_NET_45) {
+            return inv.Invoice_Date__c.addDays(45);
+        } else if (inv.Payment_Terms__c == Constants.PAYMENT_TERMS_DUE_ON_RECEIPT) {
+            return inv.Invoice_Date__c;
+        } else {
+            return inv.Invoice_Date__c.addDays(Constants.DEFAULT_INVOICE_DUE_DAYS);
         }
     }
 }

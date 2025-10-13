@@ -108,7 +108,7 @@ public class PlatformEventPublisher {
                 } else if (inv.Status__c == Constants.INVOICE_STATUS_PAID) {
                     eventType = Constants.EVENT_TYPE_PAID;
                 } else if (inv.Status__c == Constants.INVOICE_STATUS_VOIDED) {
-                    eventType = 'Voided';
+                    eventType = Constants.EVENT_TYPE_VOIDED;
                 }
                 
                 if (!String.isBlank(eventType)) {

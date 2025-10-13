@@ -77,64 +77,66 @@ public class InvoiceTriggerHandler implements IHandler {
      * @param oldInvoices Map of invoice records before update
      */
     private void handleStatusChanges(List<Invoice__c> invoices, Map<Id, Invoice__c> oldInvoices) {
+
+        // Early return if no data
+        if (invoices == null || invoices.isEmpty() || oldInvoices == null || oldInvoices.isEmpty()) {
+            return;
+        }
+
         List<Invoice__c> sentInvoices = new List<Invoice__c>();
         List<Invoice__c> paidInvoices = new List<Invoice__c>();
         List<Invoice__c> overdueInvoices = new List<Invoice__c>();
-        
+
         for (Invoice__c inv : invoices) {
             Invoice__c oldInv = oldInvoices.get(inv.Id);
-            
+
             if (oldInv.Status__c != inv.Status__c) {
-                switch on inv.Status__c {
-                    when 'Sent' { sentInvoices.add(inv); }
-                    when 'Paid' { paidInvoices.add(inv); }
-                    when 'Overdue' { overdueInvoices.add(inv); }
+                if (inv.Status__c == Constants.INVOICE_STATUS_SENT) {
+                    sentInvoices.add(inv);
+                } else if (inv.Status__c == Constants.INVOICE_STATUS_PAID) {
+                    paidInvoices.add(inv);
+                } else if (inv.Status__c == Constants.INVOICE_STATUS_OVERDUE) {
+                    overdueInvoices.add(inv);
                 }
             }
         }
-        
+
         handleSentInvoices(sentInvoices);
         handlePaidInvoices(paidInvoices);
         handleOverdueInvoices(overdueInvoices);
     }
-    
+
     private void handleSentInvoices(List<Invoice__c> sentInvoices) {
-        if (!sentInvoices.isEmpty()) {
-            System.debug('Processing ' + sentInvoices.size() + ' newly sent invoices');
-            
-            Set<Id> invoiceIds = new Set<Id>();
-            for (Invoice__c inv : sentInvoices) {
-                invoiceIds.add(inv.Id);
-            }
-            
-            InvoiceAutomationService.processStatusChanges(invoiceIds);
+        if (sentInvoices == null || sentInvoices.isEmpty()) {
+            return;
         }
+
+        System.debug('Processing ' + sentInvoices.size() + ' newly sent invoices');
+        Set<Id> invoiceIds = TriggerUtils.extractIds(sentInvoices);
+
+        InvoiceAutomationService.processStatusChanges(invoiceIds);
     }
-    
+
     private void handlePaidInvoices(List<Invoice__c> paidInvoices) {
-        if (!paidInvoices.isEmpty()) {
-            System.debug('Processing ' + paidInvoices.size() + ' newly paid invoices');
-            
-            Set<Id> invoiceIds = new Set<Id>();
-            for (Invoice__c inv : paidInvoices) {
-                invoiceIds.add(inv.Id);
-            }
-            
-            InvoiceAutomationService.processStatusChanges(invoiceIds);
+        if (paidInvoices == null || paidInvoices.isEmpty()) {
+            return;
         }
+
+        System.debug('Processing ' + paidInvoices.size() + ' newly paid invoices');
+        Set<Id> invoiceIds = TriggerUtils.extractIds(paidInvoices);
+
+        InvoiceAutomationService.processStatusChanges(invoiceIds);
     }
-    
+
     private void handleOverdueInvoices(List<Invoice__c> overdueInvoices) {
-        if (!overdueInvoices.isEmpty()) {
-            System.debug('Processing ' + overdueInvoices.size() + ' newly overdue invoices');
-            
-            Set<Id> invoiceIds = new Set<Id>();
-            for (Invoice__c inv : overdueInvoices) {
-                invoiceIds.add(inv.Id);
-            }
-            
-            InvoiceAutomationService.processStatusChanges(invoiceIds);
+        if (overdueInvoices == null || overdueInvoices.isEmpty()) {
+            return;
         }
+
+        System.debug('Processing ' + overdueInvoices.size() + ' newly overdue invoices');
+        Set<Id> invoiceIds = TriggerUtils.extractIds(overdueInvoices);
+
+        InvoiceAutomationService.processStatusChanges(invoiceIds);
     }
     
     private void handleNewInvoices(List<Invoice__c> newInvoices) {
@@ -171,4 +173,5 @@ public class InvoiceTriggerHandler implements IHandler {
             // TODO: STORY-017 - Asynchronous line item recalculation
         }
     }
+
 }
