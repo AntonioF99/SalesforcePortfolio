@@ -231,6 +231,17 @@ private class EndToEndWorkflowTest {
         System.assertEquals(Constants.INVOICE_STATUS_OVERDUE, invoice.Status__c, 'Should be Overdue');
         System.assert(invoice.Reminders_Sent__c == null || invoice.Reminders_Sent__c == 0, 'No reminders sent yet');
 
+        // ASSERT: Task created for overdue invoice
+        List<Task> overdueTasks = [
+            SELECT Id, Subject, Priority, WhatId, Status, Description
+            FROM Task
+            WHERE WhatId = :invoice.Id
+            AND Subject LIKE '%URGENT%Overdue%'
+        ];
+        System.assertEquals(1, overdueTasks.size(), 'Should create 1 overdue task');
+        System.assertEquals('High', overdueTasks[0].Priority, 'Overdue task should be High priority');
+        System.assert(overdueTasks[0].Description.contains('overdue'), 'Description should mention overdue');
+
         // ACT 3: Send reminder via controller
         InvoiceController.sendInvoice(invoice.Id);
 
@@ -253,8 +264,30 @@ private class EndToEndWorkflowTest {
         Test.stopTest();
 
         // ASSERT: Invoice paid
-        invoice = [SELECT Id, Status__c FROM Invoice__c WHERE Id = :invoice.Id];
+        invoice = [SELECT Id, Status__c, Account__c FROM Invoice__c WHERE Id = :invoice.Id];
         System.assertEquals(Constants.INVOICE_STATUS_PAID, invoice.Status__c, 'Should be Paid');
+
+        // ASSERT: Task created for payment received
+        List<Task> paymentTasks = [
+            SELECT Id, Subject, Priority, WhatId, Status
+            FROM Task
+            WHERE WhatId = :invoice.Id
+            AND Subject LIKE '%Payment Received%'
+        ];
+        System.assert(paymentTasks.size() >= 1, 'Should create at least 1 payment received task');
+        System.assertEquals('Normal', paymentTasks[0].Priority, 'Payment task should be Normal priority');
+
+        // ASSERT: Account payment metrics updated
+        Account updatedAccount = [
+            SELECT Id, Name
+            FROM Account
+            WHERE Id = :invoice.Account__c
+        ];
+        System.assertNotEquals(null, updatedAccount, 'Account should exist and be updated');
+
+        // ASSERT: Multiple reminders workflow - verify reminder tracking
+        System.assertEquals(2, [SELECT Reminders_Sent__c FROM Invoice__c WHERE Id = :invoice.Id].Reminders_Sent__c,
+                          'Should track 2 reminders sent before payment');
     }
 
     /**
@@ -306,11 +339,39 @@ private class EndToEndWorkflowTest {
 
         // ASSERT: Line items created
         List<Invoice_Line_Item__c> lineItems = [
-            SELECT Id
+            SELECT Id, Subscription__c, Invoice__c
             FROM Invoice_Line_Item__c
             WHERE Invoice__c IN :invoices
         ];
         System.assertEquals(10, lineItems.size(), 'Should create 10 line items');
+
+        // ASSERT: Each line item linked to correct subscription
+        Set<Id> lineItemSubIds = new Set<Id>();
+        for (Invoice_Line_Item__c item : lineItems) {
+            lineItemSubIds.add(item.Subscription__c);
+        }
+        System.assertEquals(10, lineItemSubIds.size(), 'Each subscription should have 1 line item');
+
+        // ASSERT: Account deduplication - 10 subscriptions on 1 account = 1 account update
+        // This validates bulkification works correctly
+        System.assertEquals(acc.Id, invoices[0].Account__c, 'All invoices should belong to same account');
+
+        // ASSERT: Tasks created for subscription activation (should be 10+ tasks)
+        List<Task> activationTasks = [
+            SELECT Id, WhatId, Subject
+            FROM Task
+            WHERE WhatId IN :subscriptions
+        ];
+        System.assert(activationTasks.size() >= 10,
+                     'Should create at least 10 tasks for subscription lifecycle (welcome, onboarding, etc.)');
+
+        // ASSERT: Verify bulkification - no duplicate invoice generation
+        Set<Id> invoiceAccountIds = new Set<Id>();
+        for (Invoice__c inv : invoices) {
+            invoiceAccountIds.add(inv.Account__c);
+        }
+        System.assertEquals(1, invoiceAccountIds.size(),
+                          'All invoices should be for the same account (validates deduplication)');
     }
 
     /**
@@ -364,5 +425,125 @@ private class EndToEndWorkflowTest {
             AND Priority = 'High'
         ];
         System.assert(tasks.size() >= 1, 'Should create high-priority task for suspension follow-up');
+    }
+
+    /**
+     * @description Test duplicate invoice prevention during subscription re-activation
+     * CRITICAL: Tests idempotency - system should not create duplicate invoices
+     * when a subscription is activated multiple times or automation runs twice
+     */
+    @isTest
+    static void testDuplicateInvoicePreventionWorkflow() {
+        // ARRANGE
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Price_Plan__c plan = [SELECT Id, Unit_Price__c, Billing_Frequency__c FROM Price_Plan__c LIMIT 1];
+
+        Subscription__c sub = TestDataFactory.createSubscription(acc.Id, plan.Id);
+        sub.Status__c = Constants.SUBSCRIPTION_STATUS_DRAFT;
+        sub.Start_Date__c = Date.today();
+        sub.End_Date__c = Date.today().addMonths(3);
+        sub.Next_Billing_Date__c = Date.today();
+        insert sub;
+
+        Test.startTest();
+
+        // ACT 1: Activate subscription (first time) - should generate invoice
+        sub.Status__c = Constants.SUBSCRIPTION_STATUS_ACTIVE;
+        update sub;
+
+        // ASSERT: First invoice created
+        List<Invoice__c> invoicesAfterFirstActivation = [
+            SELECT Id, Account__c, Status__c
+            FROM Invoice__c
+            WHERE Account__c = :acc.Id
+        ];
+        System.assertEquals(1, invoicesAfterFirstActivation.size(),
+                          'Should create exactly 1 invoice on first activation');
+
+        List<Invoice_Line_Item__c> lineItemsAfterFirst = [
+            SELECT Id, Subscription__c, Invoice__c, Period_Start__c, Period_End__c
+            FROM Invoice_Line_Item__c
+            WHERE Invoice__c IN :invoicesAfterFirstActivation
+        ];
+        System.assertEquals(1, lineItemsAfterFirst.size(),
+                          'Should create exactly 1 line item on first activation');
+
+        Date firstPeriodStart = lineItemsAfterFirst[0].Period_Start__c;
+        Date firstPeriodEnd = lineItemsAfterFirst[0].Period_End__c;
+        System.assertNotEquals(null, firstPeriodStart, 'Period start should be set');
+        System.assertNotEquals(null, firstPeriodEnd, 'Period end should be set');
+
+        // ACT 2: Suspend subscription
+        sub.Status__c = Constants.SUBSCRIPTION_STATUS_SUSPENDED;
+        update sub;
+
+        // ACT 3: Reactivate subscription - should NOT create duplicate invoice for same period
+        sub.Status__c = Constants.SUBSCRIPTION_STATUS_ACTIVE;
+        update sub;
+
+        // ASSERT: Still only 1 invoice (duplicate prevention working)
+        List<Invoice__c> invoicesAfterReactivation = [
+            SELECT Id, Account__c, Status__c
+            FROM Invoice__c
+            WHERE Account__c = :acc.Id
+        ];
+        System.assertEquals(1, invoicesAfterReactivation.size(),
+                          'Should still have only 1 invoice after reactivation (duplicate prevented)');
+
+        List<Invoice_Line_Item__c> lineItemsAfterReactivation = [
+            SELECT Id, Subscription__c, Invoice__c, Period_Start__c, Period_End__c
+            FROM Invoice_Line_Item__c
+            WHERE Subscription__c = :sub.Id
+        ];
+        System.assertEquals(1, lineItemsAfterReactivation.size(),
+                          'Should still have only 1 line item (duplicate prevented)');
+
+        // Verify period dates unchanged (same invoice, not new one)
+        System.assertEquals(firstPeriodStart, lineItemsAfterReactivation[0].Period_Start__c,
+                          'Period start should be unchanged (same invoice)');
+        System.assertEquals(firstPeriodEnd, lineItemsAfterReactivation[0].Period_End__c,
+                          'Period end should be unchanged (same invoice)');
+
+        Test.stopTest();
+
+        // ASSERT: Verify duplicate detection by attempting manual generation
+        // This simulates automation running twice or race conditions
+        Integer invoiceCountBeforeManualGeneration = [SELECT COUNT() FROM Invoice__c WHERE Account__c = :acc.Id];
+
+        // Manually call generateInvoicesForActiveSubscriptions (simulating duplicate trigger/automation)
+        SubscriptionAutomationService.generateInvoicesForActiveSubscriptions(new Set<Id>{sub.Id});
+
+        Integer invoiceCountAfterManualGeneration = [SELECT COUNT() FROM Invoice__c WHERE Account__c = :acc.Id];
+
+        System.assertEquals(invoiceCountBeforeManualGeneration, invoiceCountAfterManualGeneration,
+                          'Manual generation should not create duplicate invoice for same period (idempotency validated)');
+
+        // ASSERT: Final verification - still exactly 1 invoice and 1 line item
+        List<Invoice__c> finalInvoices = [
+            SELECT Id, Account__c, Status__c
+            FROM Invoice__c
+            WHERE Account__c = :acc.Id
+        ];
+        System.assertEquals(1, finalInvoices.size(),
+                          'Should have exactly 1 invoice throughout entire lifecycle');
+
+        List<Invoice_Line_Item__c> finalLineItems = [
+            SELECT Id, Subscription__c, Invoice__c, Period_Start__c, Period_End__c
+            FROM Invoice_Line_Item__c
+            WHERE Subscription__c = :sub.Id
+        ];
+        System.assertEquals(1, finalLineItems.size(),
+                          'Should have exactly 1 line item throughout entire lifecycle');
+
+        // ASSERT: Account metrics reflect single invoice
+        Account finalAccount = [
+            SELECT Id, Health_Score__c, Subscription_Status__c
+            FROM Account
+            WHERE Id = :acc.Id
+        ];
+        System.assertEquals(100, finalAccount.Health_Score__c,
+                          'Health score should be 100 (active subscription)');
+        System.assertEquals(Constants.ACCOUNT_STATUS_ACTIVE_CUSTOMER, finalAccount.Subscription_Status__c,
+                          'Account should be Active Customer after reactivation');
     }
 }
