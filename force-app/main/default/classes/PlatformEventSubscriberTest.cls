@@ -187,10 +187,7 @@ private class PlatformEventSubscriberTest {
         Account acc = [SELECT Id FROM Account LIMIT 1];
         
         // Create shared dependencies
-        Product__c product = TestDataFactory.createProduct();
-        insert product;
-        
-        Price_Plan__c pricePlan = TestDataFactory.createPricePlan(product.Id);
+        Price_Plan__c pricePlan = TestDataFactory.createPricePlan();
         insert pricePlan;
         
         // Create test data - reduce count to avoid governor limits

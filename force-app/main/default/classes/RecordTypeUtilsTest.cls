@@ -44,11 +44,8 @@ public class RecordTypeUtilsTest {
             }
         }
         
-        // Create product and price plan
-        Product__c product = TestDataFactory.createProduct();
-        insert product;
-        
-        Price_Plan__c pricePlan = TestDataFactory.createPricePlan(product.Id);
+        // Create price plan
+        Price_Plan__c pricePlan = TestDataFactory.createPricePlan();
         insert pricePlan;
         
         // Create subscriptions

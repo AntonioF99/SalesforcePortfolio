@@ -88,25 +88,12 @@ public class TestDataFactory {
         return acc;
     }
     
-    public static Product__c createProduct() {
+    public static Price_Plan__c createPricePlan() {
         counter++;
-        String uniqueId = String.valueOf(System.currentTimeMillis() + counter);
 
-        return new Product__c(
-            Name = 'Test Product ' + counter,
-            Description__c = 'Test product for automated testing',
-            Product_Type__c = 'Subscription',
-            Product_Code__c = 'PROD-' + uniqueId,
-            Status__c = 'Active'
-        );
-    }
-    
-    public static Price_Plan__c createPricePlan(Id productId) {
-        counter++;
-        
         return new Price_Plan__c(
-            Name = 'Test Price Plan ' + counter,
-            Product__c = productId,
+            Name = 'Test Plan ' + counter,
+            Category__c = 'CRM Base',
             Unit_Price__c = 99.99,
             Billing_Frequency__c = 'Monthly',
             Currency_Code__c = 'USD'
@@ -130,12 +117,9 @@ public class TestDataFactory {
     // Overloaded method for simplified subscription creation
     public static Subscription__c createSubscription(Id accountId) {
         // Create a basic price plan if none provided
-        Product__c product = createProduct();
-        insert product;
-        
-        Price_Plan__c pricePlan = createPricePlan(product.Id);
+        Price_Plan__c pricePlan = createPricePlan();
         insert pricePlan;
-        
+
         return createSubscription(accountId, pricePlan.Id);
     }
     
@@ -164,13 +148,14 @@ public class TestDataFactory {
     
     public static Invoice_Line_Item__c createInvoiceLineItem(Id invoiceId) {
         counter++;
-        
+
         return new Invoice_Line_Item__c(
             Invoice__c = invoiceId,
             Description__c = 'Test Line Item ' + counter,
             Quantity__c = 1,
             Unit_Price__c = 99.99,
-            Type__c = 'Subscription'
+            Type__c = Constants.LINE_ITEM_TYPE_ADD_ON,
+            Status__c = 'Active'
         );
     }
     

@@ -117,10 +117,7 @@ public class TestScenarioFactory {
         Contact contact = TestDataFactory.createContact(acc.Id);
         insert contact;
 
-        Product__c product = TestDataFactory.createProduct();
-        insert product;
-
-        Price_Plan__c pricePlan = TestDataFactory.createPricePlan(product.Id);
+        Price_Plan__c pricePlan = TestDataFactory.createPricePlan();
         insert pricePlan;
 
         Subscription__c subscription = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
@@ -129,7 +126,6 @@ public class TestScenarioFactory {
         return new Map<String, SObject>{
             'account' => acc,
             'contact' => contact,
-            'product' => product,
             'pricePlan' => pricePlan,
             'subscription' => subscription
         };

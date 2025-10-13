@@ -12,10 +12,7 @@ private class SubscriptionAutomationServiceTest {
         Account testAccount = TestDataFactory.createAccount();
         insert testAccount;
 
-        Product__c testProduct = TestDataFactory.createProduct();
-        insert testProduct;
-
-        Price_Plan__c testPricePlan = TestDataFactory.createPricePlan(testProduct.Id);
+        Price_Plan__c testPricePlan = TestDataFactory.createPricePlan();
         insert testPricePlan;
     }
 
@@ -51,7 +48,7 @@ private class SubscriptionAutomationServiceTest {
         System.assertNotEquals(null, invoices[0].Due_Date__c, 'Due date should be set');
 
         List<Invoice_Line_Item__c> lineItems = [
-            SELECT Id, Invoice__c, Subscription__c, Type__c, Quantity__c,
+            SELECT Id, Invoice__c, Subscription__c, Type__c, Status__c, Quantity__c,
                    Unit_Price__c, Period_Start__c, Period_End__c
             FROM Invoice_Line_Item__c
             WHERE Invoice__c = :invoices[0].Id
@@ -59,7 +56,8 @@ private class SubscriptionAutomationServiceTest {
 
         System.assertEquals(1, lineItems.size(), 'Should create 1 line item');
         System.assertEquals(sub.Id, lineItems[0].Subscription__c, 'Line item should link to subscription');
-        System.assertEquals('Subscription', lineItems[0].Type__c, 'Type should be Subscription');
+        System.assertEquals(Constants.LINE_ITEM_TYPE_ADD_ON, lineItems[0].Type__c, 'Type should be Add-on');
+        System.assertEquals('Active', lineItems[0].Status__c, 'Status should be Active');
         System.assertNotEquals(null, lineItems[0].Period_Start__c, 'Period start should be set');
         System.assertNotEquals(null, lineItems[0].Period_End__c, 'Period end should be set');
     }
@@ -180,7 +178,6 @@ private class SubscriptionAutomationServiceTest {
     static void testPeriodEndCalculationForBillingFrequencies() {
 
         Account acc = [SELECT Id FROM Account LIMIT 1];
-        Product__c product = [SELECT Id FROM Product__c LIMIT 1];
 
         List<Price_Plan__c> pricePlans = new List<Price_Plan__c>();
         List<String> frequencies = new List<String>{'Monthly', 'Quarterly', 'Semi-Annual', 'Annual'};
@@ -188,7 +185,7 @@ private class SubscriptionAutomationServiceTest {
         for (String freq : frequencies) {
             Price_Plan__c pp = new Price_Plan__c(
                 Name = 'Test Plan ' + freq,
-                Product__c = product.Id,
+                Category__c = 'CRM Base',
                 Unit_Price__c = 100.00,
                 Billing_Frequency__c = freq
             );
@@ -315,11 +312,10 @@ private class SubscriptionAutomationServiceTest {
     static void testDueDateCalculation() {
 
         Account acc = [SELECT Id FROM Account LIMIT 1];
-        Product__c product = [SELECT Id FROM Product__c LIMIT 1];
 
         Price_Plan__c monthlyPlan = new Price_Plan__c(
             Name = 'Monthly Plan',
-            Product__c = product.Id,
+            Category__c = 'CRM Base',
             Unit_Price__c = 100.00,
             Billing_Frequency__c = 'Monthly'
         );

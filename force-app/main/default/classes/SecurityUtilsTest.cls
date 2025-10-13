@@ -10,17 +10,10 @@ private class SecurityUtilsTest {
     static void setupTestData() {
         Account testAccount = new Account(Name = 'Security Test Account');
         insert testAccount;
-        
-        Product__c testProduct = new Product__c(
-            Name = 'Security Test Product',
-            Status__c = 'Active',
-            Product_Code__c = 'SEC-TEST-001'
-        );
-        insert testProduct;
-        
+
         Price_Plan__c testPricePlan = new Price_Plan__c(
-            Product__c = testProduct.Id,
             Name = 'Test Price Plan',
+            Category__c = 'CRM Base',
             Unit_Price__c = 100.00,
             Billing_Frequency__c = 'Monthly'
         );
