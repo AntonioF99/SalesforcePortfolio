@@ -34,11 +34,6 @@
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
     <fieldPermissions>
-        <editable>true</editable>
-        <field>Subscription__c.Status__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
         <editable>false</editable>
         <field>Subscription__c.Cancellation_Reason__c</field>
         <readable>true</readable>
@@ -50,12 +45,17 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>Invoice__c.Status__c</field>
+        <field>Invoice__c.Total_Amount__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>Invoice__c.Total_Amount__c</field>
+        <field>Invoice__c.Reminders_Sent__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Invoice__c.Last_Reminder_Date__c</field>
         <readable>true</readable>
     </fieldPermissions>
 </PermissionSet>

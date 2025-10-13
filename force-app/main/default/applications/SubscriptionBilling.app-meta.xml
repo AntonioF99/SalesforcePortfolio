@@ -16,7 +16,6 @@
     <tabs>standard-home</tabs>
     <tabs>standard-Account</tabs>
     <tabs>standard-Contact</tabs>
-    <tabs>Product__c</tabs>
     <tabs>Price_Plan__c</tabs>
     <tabs>Subscription__c</tabs>
     <tabs>Invoice__c</tabs>

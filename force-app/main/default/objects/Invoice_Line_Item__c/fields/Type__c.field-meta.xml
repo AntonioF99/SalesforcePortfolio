@@ -10,14 +10,19 @@
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>
-                <fullName>Subscription</fullName>
+                <fullName>Add-on</fullName>
                 <default>true</default>
-                <label>Subscription</label>
+                <label>Add-on</label>
             </value>
             <value>
                 <fullName>Setup Fee</fullName>
                 <default>false</default>
                 <label>Setup Fee</label>
+            </value>
+            <value>
+                <fullName>Professional Services</fullName>
+                <default>false</default>
+                <label>Professional Services</label>
             </value>
             <value>
                 <fullName>Usage</fullName>
@@ -28,11 +33,6 @@
                 <fullName>Credit</fullName>
                 <default>false</default>
                 <label>Credit</label>
-            </value>
-            <value>
-                <fullName>Other</fullName>
-                <default>false</default>
-                <label>Other</label>
             </value>
         </valueSetDefinition>
     </valueSet>
