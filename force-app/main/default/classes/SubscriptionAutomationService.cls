@@ -188,9 +188,8 @@ public class SubscriptionAutomationService {
 
         List<Subscription__c> subscriptions = [
             SELECT Id, Name, Account__c, Quantity__c, Start_Date__c,
-                   Price_Plan__c, Price_Plan__r.Unit_Price__c,
-                   Price_Plan__r.Billing_Frequency__c,
-                   Price_Plan__r.Product__c, Price_Plan__r.Product__r.Name
+                   Price_Plan__c, Price_Plan__r.Name, Price_Plan__r.Unit_Price__c,
+                   Price_Plan__r.Billing_Frequency__c
             FROM Subscription__c
             WHERE Id IN :subscriptionIds
             AND Status__c = :Constants.SUBSCRIPTION_STATUS_ACTIVE
@@ -258,8 +257,8 @@ public class SubscriptionAutomationService {
             Invoice_Line_Item__c lineItem = new Invoice_Line_Item__c(
                 Invoice__c = invoice.Id,
                 Subscription__c = sub.Id,
-                Product__c = sub.Price_Plan__r.Product__c,
-                Type__c = Constants.LINE_ITEM_TYPE_SUBSCRIPTION,
+                Type__c = Constants.LINE_ITEM_TYPE_ADD_ON,
+                Status__c = 'Active',
                 Quantity__c = sub.Quantity__c != null ? sub.Quantity__c : 1,
                 Unit_Price__c = sub.Price_Plan__r.Unit_Price__c,
                 Period_Start__c = periodStart,
