@@ -49,7 +49,7 @@
         <name>Create_Trial_Follow_Up_Task</name>
         <label>Create Trial Follow-Up Task</label>
         <locationX>176</locationX>
-        <locationY>158</locationX>
+        <locationY>158</locationY>
         <inputAssignments>
             <field>Subject</field>
             <value>
