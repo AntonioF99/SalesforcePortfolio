@@ -135,7 +135,18 @@ public class InvoiceValidator {
     public static void generateInvoiceNumbers(List<Invoice__c> invoices) {
         System.debug('Auto-numbering handled by Name field for ' + invoices.size() + ' invoices');
     }
-    
+
+    /**
+     * NOTE: Invoice totals are calculated automatically via native Salesforce features:
+     *
+     * - Subtotal__c: Rollup Summary field (SUM of Invoice_Line_Item__c.Line_Amount__c)
+     * - Tax_Amount__c: Formula field (Subtotal__c * Tax_Rate__c / 100)
+     * - Total_Amount__c: Formula field (Subtotal__c + Tax_Amount__c)
+     *
+     * No Apex code is needed - Salesforce updates these fields automatically when line items change.
+     * This provides real-time calculation without DML operations.
+     */
+
     /*
      * @description Identifies invoices that need line item recalculation
      * @param invoices List of invoice records to check

@@ -211,11 +211,29 @@ private class PlatformEventSubscriberTest {
         }
         insert subscriptions;
         
-        // Create invoices with line items so they can be sent (have subtotal)
+        // Create invoices in bulk to avoid governor limits
         for (Integer i = 0; i < 10; i++) {
-            Invoice__c invoice = TestScenarioFactory.createSentInvoice(acc.Id);
-            invoices.add(invoice);
+            invoices.add(TestDataFactory.createInvoice(acc.Id));
         }
+        insert invoices;
+
+        // Create line items for each invoice
+        List<Invoice_Line_Item__c> lineItems = new List<Invoice_Line_Item__c>();
+        for (Invoice__c inv : invoices) {
+            lineItems.add(new Invoice_Line_Item__c(
+                Invoice__c = inv.Id,
+                Description__c = 'Test Service',
+                Quantity__c = 1,
+                Unit_Price__c = 500.00
+            ));
+        }
+        insert lineItems;
+
+        // Update all invoices to Sent status in one operation
+        for (Invoice__c inv : invoices) {
+            inv.Status__c = 'Sent';
+        }
+        update invoices;
         
         Test.startTest();
         
