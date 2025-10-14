@@ -1,7 +1,14 @@
 /**
- * @description Utility class for publishing platform events with error handling
+ * Platform Event Publisher for External Integrations
+ *
+ * PURPOSE: Publishes platform events to notify external systems of business events.
+ * Events are consumed by external integrations (Slack, webhooks, accounting systems).
+ *
+ * ARCHITECTURE NOTE: This class publishes 1 event per significant business action.
+ * Internal automation does NOT consume these events (handled directly by trigger handlers).
+ *
  * @author Antonio Franco
- * @date 2025-09-24
+ * @date 2025-10-14 (Simplified: 1 event per action, added context fields)
  * @story STORY-006: Platform Events & Integration Layer
  */
 public class PlatformEventPublisher {

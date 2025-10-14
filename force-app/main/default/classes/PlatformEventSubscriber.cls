@@ -1,32 +1,43 @@
 /**
- * @description Simplified event subscriber for native Salesforce automation with Slack notifications
+ * Platform Event Subscriber for External Integrations Only
+ *
+ * PURPOSE: Routes platform events to external systems (Slack, webhooks, etc.)
+ *
+ * ARCHITECTURE NOTE: Internal automation (tasks, account updates, invoice generation)
+ * is handled DIRECTLY by trigger handlers. Platform events are ONLY for decoupling
+ * external integrations from core business logic.
+ *
+ * This prevents circular logic where events trigger automation that's already executed.
+ *
  * @author Antonio Franco
- * @date 2025-09-24
+ * @date 2025-10-14 (Refactored: removed circular automation calls)
  * @story STORY-006: Platform Events & Integration Layer (Simplified)
  */
 public class PlatformEventSubscriber {
     
     /**
-     * @description Processes subscription events with native automation + Slack notifications
+     * Process subscription events for EXTERNAL INTEGRATIONS ONLY
+     *
+     * NOTE: Internal automation (tasks, account updates) is handled by trigger handlers.
+     * This method ONLY routes events to external systems (Slack, webhooks, etc.)
+     *
      * @param subscriptionEvents List of subscription platform events
      */
     public static void processSubscriptionEvents(List<Subscription_Event__e> subscriptionEvents) {
-        
+
         if (subscriptionEvents == null || subscriptionEvents.isEmpty()) {
             return;
         }
-        
-        Set<Id> newSubscriptionIds = new Set<Id>();
-        Set<Id> statusChangeIds = new Set<Id>();
+
         List<String> slackPayloads = new List<String>();
-        
-        // Collect subscription IDs for batch processing
+
+        // Collect subscription IDs for batch query
         Set<String> subscriptionIds = new Set<String>();
         for (Subscription_Event__e event : subscriptionEvents) {
             subscriptionIds.add(event.Subscription_Id__c);
         }
-        
-        // Query full subscription data once
+
+        // Query subscription data for external notifications
         String subscriptionQuery = 'SELECT Id, Name, Account__c, Account__r.Name, Status__c, ' +
                                  'Start_Date__c FROM Subscription__c WHERE Id IN :subscriptionIds';
         if (!Test.isRunningTest()) {
@@ -35,67 +46,57 @@ public class PlatformEventSubscriber {
         Map<Id, Subscription__c> subscriptionData = new Map<Id, Subscription__c>(
             (List<Subscription__c>) Database.query(subscriptionQuery)
         );
-        
-        // Process each event
+
+        // Process events for external integrations only
         for (Subscription_Event__e event : subscriptionEvents) {
-            
+
             Subscription__c subscription = subscriptionData.get(event.Subscription_Id__c);
             if (subscription == null) continue;
-            
-            // Route to native automation
-            switch on event.Event_Type__c {
-                when 'Created' {
-                    newSubscriptionIds.add(subscription.Id);
-                }
-                when 'StatusChanged' {
-                    statusChangeIds.add(subscription.Id);
-                }
-                when 'Updated' {
-                    statusChangeIds.add(subscription.Id);
-                }
-            }
-            
-            // Prepare Slack notification for high-value events
+
+            // Send Slack notification for high-value events
             if (shouldNotifySlack(event, subscription)) {
                 String slackPayload = createSubscriptionSlackPayload(subscription, event);
                 slackPayloads.add(slackPayload);
             }
+
+            // TODO: Add webhook integration for CRM sync
+            // if (shouldCallWebhook(event)) {
+            //     WebhookService.sendSubscriptionUpdate(event, subscription);
+            // }
+
+            // TODO: Add data warehouse sync
+            // if (shouldSyncToWarehouse(event)) {
+            //     DataWarehouseService.syncSubscription(subscription);
+            // }
         }
-        
-        // Execute native Salesforce automation
-        if (!newSubscriptionIds.isEmpty()) {
-            SubscriptionAutomationService.processNewSubscriptions(newSubscriptionIds);
-        }
-        
-        if (!statusChangeIds.isEmpty()) {
-            SubscriptionAutomationService.processStatusChanges(statusChangeIds);
-        }
-        
-        // Send Slack notifications for demo purposes
+
+        // Send Slack notifications asynchronously
         sendSlackNotifications(slackPayloads, 'subscription');
     }
     
     /**
-     * @description Processes invoice events with native automation + Slack notifications
+     * Process invoice events for EXTERNAL INTEGRATIONS ONLY
+     *
+     * NOTE: Internal automation (tasks, account metrics) is handled by trigger handlers.
+     * This method ONLY routes events to external systems (Slack, accounting systems, etc.)
+     *
      * @param invoiceEvents List of invoice platform events
      */
     public static void processInvoiceEvents(List<Invoice_Event__e> invoiceEvents) {
-        
+
         if (invoiceEvents == null || invoiceEvents.isEmpty()) {
             return;
         }
-        
-        Set<Id> newInvoiceIds = new Set<Id>();
-        Set<Id> statusChangeIds = new Set<Id>();
+
         List<String> slackPayloads = new List<String>();
-        
-        // Collect invoice IDs for batch processing
+
+        // Collect invoice IDs for batch query
         Set<String> invoiceIds = new Set<String>();
         for (Invoice_Event__e event : invoiceEvents) {
             invoiceIds.add(event.Invoice_Id__c);
         }
-        
-        // Query full invoice data once
+
+        // Query invoice data for external notifications
         String invoiceQuery = 'SELECT Id, Name, Account__c, Account__r.Name, Status__c, ' +
                             'Invoice_Date__c, Due_Date__c, Total_Amount__c, ' +
                             'Subtotal__c, Tax_Amount__c, Balance_Due__c ' +
@@ -106,40 +107,32 @@ public class PlatformEventSubscriber {
         Map<Id, Invoice__c> invoiceData = new Map<Id, Invoice__c>(
             (List<Invoice__c>) Database.query(invoiceQuery)
         );
-        
-        // Process each event
+
+        // Process events for external integrations only
         for (Invoice_Event__e event : invoiceEvents) {
-            
+
             Invoice__c invoice = invoiceData.get(event.Invoice_Id__c);
             if (invoice == null) continue;
-            
-            // Route to native automation
-            switch on event.Event_Type__c {
-                when 'Created' {
-                    newInvoiceIds.add(invoice.Id);
-                }
-                when 'Sent', 'Paid', 'Voided', 'Updated' {
-                    statusChangeIds.add(invoice.Id);
-                }
-            }
-            
-            // Prepare Slack notification for important events
+
+            // Send Slack notification for important invoice events
             if (shouldNotifySlack(event, invoice)) {
                 String slackPayload = createInvoiceSlackPayload(invoice, event);
                 slackPayloads.add(slackPayload);
             }
+
+            // TODO: Add accounting system integration
+            // Always sync paid and voided invoices to external accounting system
+            // if (event.Event_Type__c == 'Paid' || event.Event_Type__c == 'Voided') {
+            //     AccountingSystemService.syncInvoice(invoice, event.Event_Type__c);
+            // }
+
+            // TODO: Add payment gateway webhook
+            // if (event.Event_Type__c == 'Sent') {
+            //     PaymentGatewayService.createPaymentLink(invoice);
+            // }
         }
-        
-        // Execute native Salesforce automation
-        if (!newInvoiceIds.isEmpty()) {
-            InvoiceAutomationService.processNewInvoices(newInvoiceIds);
-        }
-        
-        if (!statusChangeIds.isEmpty()) {
-            InvoiceAutomationService.processStatusChanges(statusChangeIds);
-        }
-        
-        // Send Slack notifications for demo purposes
+
+        // Send Slack notifications asynchronously
         sendSlackNotifications(slackPayloads, 'invoice');
     }
     
