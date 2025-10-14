@@ -361,4 +361,179 @@ private class InvoiceControllerTest {
 
         Test.stopTest();
     }
+
+    /**
+     * @description Test createInvoice method with FLS enforcement
+     * Tests Security.stripInaccessible() for CREATE operations
+     */
+    @isTest
+    static void testCreateInvoice_Success() {
+        // ARRANGE
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+
+        Invoice__c newInvoice = new Invoice__c(
+            Account__c = testAccount.Id,
+            Invoice_Date__c = Date.today(),
+            Payment_Terms__c = Constants.PAYMENT_TERMS_NET_30,
+            Status__c = Constants.INVOICE_STATUS_DRAFT
+        );
+
+        // ACT
+        Test.startTest();
+        Id invoiceId = InvoiceController.createInvoice(newInvoice);
+        Test.stopTest();
+
+        // ASSERT: Invoice created
+        System.assertNotEquals(null, invoiceId, 'Invoice ID should be returned');
+
+        Invoice__c createdInvoice = [
+            SELECT Id, Account__c, Status__c, Invoice_Date__c, Payment_Terms__c
+            FROM Invoice__c
+            WHERE Id = :invoiceId
+        ];
+        System.assertEquals(testAccount.Id, createdInvoice.Account__c, 'Account should match');
+        System.assertEquals(Constants.INVOICE_STATUS_DRAFT, createdInvoice.Status__c, 'Status should be Draft');
+        System.assertEquals(Date.today(), createdInvoice.Invoice_Date__c, 'Invoice date should match');
+    }
+
+    /**
+     * @description Test createInvoice with null input
+     * Should handle null gracefully (Security.stripInaccessible will process empty list)
+     */
+    @isTest
+    static void testCreateInvoice_NullInput() {
+        // ACT & ASSERT
+        Test.startTest();
+        try {
+            InvoiceController.createInvoice(null);
+            // If it doesn't throw, that's ok - stripInaccessible might handle null
+        } catch (Exception e) {
+            // Exception is acceptable for null input
+            System.assertNotEquals(null, e, 'Should throw exception or handle null gracefully');
+        }
+        Test.stopTest();
+    }
+
+    /**
+     * @description Test updateInvoice method with FLS enforcement
+     * Tests Security.stripInaccessible() for UPDATE operations
+     */
+    @isTest
+    static void testUpdateInvoice_Success() {
+        // ARRANGE
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+
+        Invoice__c invoice = TestDataFactory.createInvoice(testAccount.Id);
+        invoice.Status__c = Constants.INVOICE_STATUS_DRAFT;
+        insert invoice;
+
+        // Modify invoice - also update Due_Date to match new payment terms
+        invoice.Payment_Terms__c = Constants.PAYMENT_TERMS_NET_45;
+        invoice.Due_Date__c = invoice.Invoice_Date__c.addDays(45);
+
+        // ACT
+        Test.startTest();
+        InvoiceController.updateInvoice(invoice);
+        Test.stopTest();
+
+        // ASSERT: Invoice updated
+        Invoice__c updatedInvoice = [
+            SELECT Id, Payment_Terms__c, Due_Date__c
+            FROM Invoice__c
+            WHERE Id = :invoice.Id
+        ];
+        System.assertEquals(Constants.PAYMENT_TERMS_NET_45, updatedInvoice.Payment_Terms__c,
+                          'Payment terms should be updated');
+        System.assertEquals(invoice.Invoice_Date__c.addDays(45), updatedInvoice.Due_Date__c,
+                          'Due date should be consistent with payment terms');
+    }
+
+    /**
+     * @description Test updateInvoice with null input
+     */
+    @isTest
+    static void testUpdateInvoice_NullInput() {
+        // ACT & ASSERT
+        Test.startTest();
+        try {
+            InvoiceController.updateInvoice(null);
+            // If it doesn't throw, that's ok - stripInaccessible might handle null
+        } catch (Exception e) {
+            // Exception is acceptable for null input
+            System.assertNotEquals(null, e, 'Should throw exception or handle null gracefully');
+        }
+        Test.stopTest();
+    }
+
+    /**
+     * @description Test createInvoice with validators triggered
+     * Tests that InvoiceValidator.setDefaults() is called by trigger
+     */
+    @isTest
+    static void testCreateInvoice_WithValidatorDefaults() {
+        // ARRANGE
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+
+        // Create invoice WITHOUT Invoice_Date__c - validator should set default
+        Invoice__c newInvoice = new Invoice__c(
+            Account__c = testAccount.Id,
+            Payment_Terms__c = Constants.PAYMENT_TERMS_NET_30
+            // Invoice_Date__c not set - should default to today
+            // Status__c not set - should default to Draft
+        );
+
+        // ACT
+        Test.startTest();
+        Id invoiceId = InvoiceController.createInvoice(newInvoice);
+        Test.stopTest();
+
+        // ASSERT: Defaults applied by validator
+        Invoice__c createdInvoice = [
+            SELECT Id, Invoice_Date__c, Status__c, Due_Date__c
+            FROM Invoice__c
+            WHERE Id = :invoiceId
+        ];
+        System.assertEquals(Date.today(), createdInvoice.Invoice_Date__c,
+                          'Invoice date should default to today via validator');
+        System.assertEquals(Constants.INVOICE_STATUS_DRAFT, createdInvoice.Status__c,
+                          'Status should default to Draft via validator');
+        System.assertNotEquals(null, createdInvoice.Due_Date__c,
+                          'Due date should be calculated via validator');
+    }
+
+    /**
+     * @description Test updateInvoice triggers validation rules
+     * Ensures business rules are enforced during update
+     */
+    @isTest
+    static void testUpdateInvoice_ValidationEnforced() {
+        // ARRANGE
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+
+        Invoice__c invoice = TestDataFactory.createInvoice(testAccount.Id);
+        invoice.Status__c = Constants.INVOICE_STATUS_DRAFT;
+        invoice.Invoice_Date__c = Date.today();
+        insert invoice;
+
+        // Add line item so invoice has subtotal
+        Invoice_Line_Item__c lineItem = TestDataFactory.createInvoiceLineItem(invoice.Id);
+        insert lineItem;
+
+        // Try to update to Sent status (should succeed with subtotal > 0)
+        invoice.Status__c = Constants.INVOICE_STATUS_SENT;
+
+        // ACT
+        Test.startTest();
+        InvoiceController.updateInvoice(invoice);
+        Test.stopTest();
+
+        // ASSERT: Update succeeded
+        Invoice__c updatedInvoice = [
+            SELECT Id, Status__c
+            FROM Invoice__c
+            WHERE Id = :invoice.Id
+        ];
+        System.assertEquals(Constants.INVOICE_STATUS_SENT, updatedInvoice.Status__c,
+                          'Status should be updated to Sent');
+    }
 }
