@@ -27,69 +27,6 @@ public with sharing class InvoiceController {
         ];
     }
     
-    // These methods are no longer needed but kept for LWC compatibility
-    // Can be removed after updating JavaScript components
-    @AuraEnabled
-    public static Id createInvoice(Invoice__c invoice) {
-        /**
-         * SECURITY: Security.stripInaccessible() protects against attempts to set fields
-         * without appropriate FLS permissions.
-         *
-         * WHY THIS IS NECESSARY:
-         * This method receives a complete Invoice__c from the LWC. A user could attempt
-         * to set protected fields like Balance_Due__c, Tax_Amount__c, Total_Amount__c
-         * even without FLS create permissions.
-         *
-         * WHAT IT DOES:
-         * - AccessType.CREATABLE = checks CREATE FLS for each invoice field
-         * - Automatically removes non-permitted fields before insert
-         * - Prevents FLS errors and privilege escalation attempts
-         *
-         * EXAMPLE:
-         * Input: { Account__c: '001xxx', Invoice_Date__c: today, Balance_Due__c: 1000 }
-         * If user CANNOT create Balance_Due__c (formula field):
-         * After strip: { Account__c: '001xxx', Invoice_Date__c: today }
-         * Balance_Due__c field is calculated automatically by the system.
-         */
-        SObjectAccessDecision decision = Security.stripInaccessible(
-            AccessType.CREATABLE,
-            new List<Invoice__c>{ invoice }
-        );
-        insert decision.getRecords();
-        return ((Invoice__c)decision.getRecords()[0]).Id;
-    }
-
-    @AuraEnabled
-    public static void updateInvoice(Invoice__c invoice) {
-        /**
-         * SECURITY: Security.stripInaccessible() filters fields modifiable by the user
-         * based on FLS EDIT permissions.
-         *
-         * WHY THIS IS NECESSARY:
-         * The LWC can send an Invoice__c with any modified field. Without this protection,
-         * a user could bypass FLS permissions and modify restricted fields
-         * like Balance_Due__c, Tax_Rate__c, or audit fields.
-         *
-         * WHAT IT DOES:
-         * - AccessType.UPDATABLE = checks UPDATE FLS for each modified field
-         * - Removes non-permitted fields before the update
-         * - Permitted fields are updated normally
-         *
-         * EXAMPLE:
-         * Input: { Id: '001xxx', Status__c: 'Paid', Balance_Due__c: 0, Tax_Rate__c: 25 }
-         * If user can modify Status__c but NOT Balance_Due__c and Tax_Rate__c:
-         * After strip: { Id: '001xxx', Status__c: 'Paid' }
-         * Only Status__c is updated, other fields are silently ignored.
-         *
-         * NOTE: InvoiceValidator will continue to validate business rules on permitted fields.
-         */
-        SObjectAccessDecision decision = Security.stripInaccessible(
-            AccessType.UPDATABLE,
-            new List<Invoice__c>{ invoice }
-        );
-        update decision.getRecords();
-    }
-    
     @AuraEnabled(cacheable=true)
     public static List<Invoice__c> getInvoicesByAccount(Id accountId) {
         return [

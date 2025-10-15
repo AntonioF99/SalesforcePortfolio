@@ -115,7 +115,7 @@ public class InvoiceTriggerHandler implements IHandler {
         }
 
         System.debug('Processing ' + sentInvoices.size() + ' newly sent invoices');
-        Set<Id> invoiceIds = TriggerUtils.extractIds(sentInvoices);
+        Set<Id> invoiceIds = new Map<Id, Invoice__c>(sentInvoices).keySet();
 
         InvoiceAutomationService.processStatusChanges(invoiceIds);
     }
@@ -126,7 +126,7 @@ public class InvoiceTriggerHandler implements IHandler {
         }
 
         System.debug('Processing ' + paidInvoices.size() + ' newly paid invoices');
-        Set<Id> invoiceIds = TriggerUtils.extractIds(paidInvoices);
+        Set<Id> invoiceIds = new Map<Id, Invoice__c>(paidInvoices).keySet();
 
         InvoiceAutomationService.processStatusChanges(invoiceIds);
     }
@@ -137,7 +137,7 @@ public class InvoiceTriggerHandler implements IHandler {
         }
 
         System.debug('Processing ' + overdueInvoices.size() + ' newly overdue invoices');
-        Set<Id> invoiceIds = TriggerUtils.extractIds(overdueInvoices);
+        Set<Id> invoiceIds = new Map<Id, Invoice__c>(overdueInvoices).keySet();
 
         InvoiceAutomationService.processStatusChanges(invoiceIds);
     }

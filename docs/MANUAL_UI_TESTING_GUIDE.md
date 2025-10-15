@@ -292,44 +292,31 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
 
 ## 7. Batch Jobs Automation
 
-**Obiettivo**: Testare i batch job schedulati.
+**Obiettivo**: Testare il batch job schedulato unificato.
 
-### Step 7.1: InvoiceOverdueBatch
+### Step 7.1: DailyMaintenanceBatch
+
+Il `DailyMaintenanceBatch` gestisce sia le invoice scadute che le trial expirate in un unico job.
 
 **Test Manuale via Developer Console**:
 
-1. Creare Invoice test:
-   - Status: `Sent`
-   - Due Date: 5 giorni fa
-   - Balance Due: 100.00
+1. **Setup dati test**:
+   - Creare Invoice: Status = `Sent`, Due Date = 5 giorni fa, Balance Due = 100.00
+   - Creare Subscription: Status = `Trial`, Trial End Date = 5 giorni fa
 
 2. Aprire **Developer Console** → **Debug** → **Execute Anonymous**
 
 3. Eseguire:
 ```apex
-InvoiceOverdueBatch batch = new InvoiceOverdueBatch();
+DailyMaintenanceBatch batch = new DailyMaintenanceBatch();
 Database.executeBatch(batch, 200);
 ```
 
-4. **Verifiche**:
+4. **Verifiche Invoice Overdue**:
    - Invoice cambiata a Status = `Overdue`
    - Task creata
 
-### Step 7.2: TrialExpirationBatch
-
-**Test Manuale via Developer Console**:
-
-1. Creare Subscription test:
-   - Status: `Trial`
-   - Trial End Date: 5 giorni fa
-
-2. Eseguire:
-```apex
-TrialExpirationBatch batch = new TrialExpirationBatch();
-Database.executeBatch(batch, 200);
-```
-
-3. **Verifiche**:
+5. **Verifiche Trial Expiration**:
    - Subscription:
      - Status: `Cancelled`
      - Cancellation Reason: `Trial Expired`

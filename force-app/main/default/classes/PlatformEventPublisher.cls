@@ -71,24 +71,29 @@ public class PlatformEventPublisher {
     }
     
     /**
-     * @description Publishes subscription status change events
+     * @description Publishes subscription status change events for critical statuses only
      * @param subscriptions List of subscription records
      * @param oldSubscriptions Map of old subscription values
      */
     public static void publishSubscriptionStatusChanges(List<Subscription__c> subscriptions, 
                                                        Map<Id, Subscription__c> oldSubscriptions) {
         
-        List<Subscription__c> statusChangedSubs = new List<Subscription__c>();
+        List<Subscription__c> criticalStatusChanges = new List<Subscription__c>();
         
         for (Subscription__c sub : subscriptions) {
             Subscription__c oldSub = oldSubscriptions.get(sub.Id);
             if (oldSub != null && sub.Status__c != oldSub.Status__c) {
-                statusChangedSubs.add(sub);
+                // Only publish events for critical status changes
+                if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_ACTIVE ||
+                    sub.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED ||
+                    sub.Status__c == Constants.SUBSCRIPTION_STATUS_SUSPENDED) {
+                    criticalStatusChanges.add(sub);
+                }
             }
         }
         
-        if (!statusChangedSubs.isEmpty()) {
-            publishSubscriptionEvents(statusChangedSubs, 'StatusChanged');
+        if (!criticalStatusChanges.isEmpty()) {
+            publishSubscriptionEvents(criticalStatusChanges, 'StatusChanged');
         }
     }
     

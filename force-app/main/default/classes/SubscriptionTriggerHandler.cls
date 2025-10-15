@@ -18,18 +18,10 @@ public class SubscriptionTriggerHandler implements IHandler {
     }
     
     public void beforeUpdate(Map<Id, SObject> oldMap, Map<Id, SObject> newMap) {
-        List<Subscription__c> subscriptions = (List<Subscription__c>) newMap.values();
         Map<Id, Subscription__c> oldSubscriptions = (Map<Id, Subscription__c>) oldMap;
-
-        // Validate cancelled subscriptions cannot be modified
-        SubscriptionValidator.validateCancelledImmutability(oldSubscriptions, (Map<Id, Subscription__c>) newMap);
-
-        // Set defaults for fields when status changes (e.g., Trial_End_Date when Status → Trial)
-        SubscriptionValidator.setDefaults(subscriptions);
-
+        
         SubscriptionValidator.validateStateTransitions(oldSubscriptions, (Map<Id, Subscription__c>) newMap);
         SubscriptionValidator.validateCancellationPermissions(oldSubscriptions, (Map<Id, Subscription__c>) newMap);
-        SubscriptionValidator.validateBusinessRules(subscriptions, true);
     }
     
     public void beforeDelete(Map<Id, SObject> oldMap) {
@@ -44,8 +36,16 @@ public class SubscriptionTriggerHandler implements IHandler {
         handleNewSubscriptions(subscriptions);
         updateAccountSubscriptionStats(subscriptions);
 
-        // Publish platform events for external integration
-        PlatformEventPublisher.publishSubscriptionEvents(subscriptions, 'Created');
+        // Publish platform events only for Active subscriptions (not Draft/Trial)
+        List<Subscription__c> activeSubscriptions = new List<Subscription__c>();
+        for (Subscription__c sub : subscriptions) {
+            if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_ACTIVE) {
+                activeSubscriptions.add(sub);
+            }
+        }
+        if (!activeSubscriptions.isEmpty()) {
+            PlatformEventPublisher.publishSubscriptionEvents(activeSubscriptions, 'Created');
+        }
     }
     
     public void afterUpdate(Map<Id, SObject> oldMap, Map<Id, SObject> newMap) {
@@ -60,10 +60,8 @@ public class SubscriptionTriggerHandler implements IHandler {
             queueInvoiceGeneration(needingInvoice);
         }
         
-        // Publish platform events for status changes and updates
-        System.debug('Publishing platform events for status changes');
+        // Publish platform events only for critical status changes (Active, Cancelled, Suspended)
         PlatformEventPublisher.publishSubscriptionStatusChanges((List<Subscription__c>) newMap.values(), oldSubscriptions);
-        PlatformEventPublisher.publishSubscriptionEvents((List<Subscription__c>) newMap.values(), 'Updated');
     }
     
     public void afterDelete(Map<Id, SObject> oldMap) {
@@ -123,7 +121,7 @@ public class SubscriptionTriggerHandler implements IHandler {
         }
 
         System.debug('Processing ' + activatedSubs.size() + ' activated subscriptions');
-        Set<Id> subscriptionIds = TriggerUtils.extractIds(activatedSubs);
+        Set<Id> subscriptionIds = new Map<Id, Subscription__c>(activatedSubs).keySet();
 
         SubscriptionAutomationService.processStatusChanges(subscriptionIds);
         SubscriptionAutomationService.generateInvoicesForActiveSubscriptions(subscriptionIds);
@@ -135,7 +133,7 @@ public class SubscriptionTriggerHandler implements IHandler {
         }
 
         System.debug('Processing ' + cancelledSubs.size() + ' cancelled subscriptions');
-        Set<Id> subscriptionIds = TriggerUtils.extractIds(cancelledSubs);
+        Set<Id> subscriptionIds = new Map<Id, Subscription__c>(cancelledSubs).keySet();
 
         SubscriptionAutomationService.processStatusChanges(subscriptionIds);
     }
@@ -146,7 +144,7 @@ public class SubscriptionTriggerHandler implements IHandler {
         }
 
         System.debug('Processing ' + suspendedSubs.size() + ' suspended subscriptions');
-        Set<Id> subscriptionIds = TriggerUtils.extractIds(suspendedSubs);
+        Set<Id> subscriptionIds = new Map<Id, Subscription__c>(suspendedSubs).keySet();
 
         SubscriptionAutomationService.processStatusChanges(subscriptionIds);
     }
@@ -157,7 +155,7 @@ public class SubscriptionTriggerHandler implements IHandler {
         }
 
         System.debug('Processing ' + newSubscriptions.size() + ' new subscriptions');
-        Set<Id> subscriptionIds = TriggerUtils.extractIds(newSubscriptions);
+        Set<Id> subscriptionIds = new Map<Id, Subscription__c>(newSubscriptions).keySet();
 
         SubscriptionAutomationService.processNewSubscriptions(subscriptionIds);
     }

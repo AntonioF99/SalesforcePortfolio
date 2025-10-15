@@ -31,26 +31,8 @@ public class SubscriptionValidator {
         Constants.SUBSCRIPTION_STATUS_CANCELLED
     };
     
-    /*
-     * @description Validates that cancelled subscriptions cannot be modified
-     * @param oldSubscriptions Map of old subscription records
-     * @param newSubscriptions Map of new subscription records
-     */
-    public static void validateCancelledImmutability(Map<Id, Subscription__c> oldSubscriptions, 
-                                                     Map<Id, Subscription__c> newSubscriptions) {
-        for (Id subId : newSubscriptions.keySet()) {
-            Subscription__c oldSub = oldSubscriptions.get(subId);
-            Subscription__c newSub = newSubscriptions.get(subId);
-            
-            // If old status was Cancelled, block any modifications
-            if (oldSub.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED) {
-                newSub.addError('Cannot modify cancelled subscriptions');
-            }
-        }
-    }
-    
-    /*
-     * @description Validates state transitions for subscription status changes
+    /**
+     * @description Validates status transitions follow allowed state machine
      * @param oldSubscriptions Map of old subscription records
      * @param newSubscriptions Map of new subscription records
      */

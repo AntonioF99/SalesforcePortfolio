@@ -75,14 +75,20 @@ private class InvoiceControllerTest {
         insert lineItems;
 
         // Now update invoices to their target statuses (with line items present)
+        // Step 1: Move Draft → Sent (required before Paid/Overdue/Voided)
         sentInv.Status__c = Constants.INVOICE_STATUS_SENT;
+        overdueInv.Status__c = Constants.INVOICE_STATUS_SENT;
+        paidInv.Status__c = Constants.INVOICE_STATUS_SENT;
+        voidedInv.Status__c = Constants.INVOICE_STATUS_SENT;
+        update new List<Invoice__c>{sentInv, overdueInv, paidInv, voidedInv};
+        
+        // Step 2: Move to final statuses (now allowed from Sent)
         overdueInv.Status__c = Constants.INVOICE_STATUS_OVERDUE;
         overdueInv.Reminders_Sent__c = 0;
         paidInv.Status__c = Constants.INVOICE_STATUS_PAID;
         paidInv.Balance_Due__c = 0;
         voidedInv.Status__c = Constants.INVOICE_STATUS_VOIDED;
-
-        update new List<Invoice__c>{sentInv, overdueInv, paidInv, voidedInv};
+        update new List<Invoice__c>{overdueInv, paidInv, voidedInv};
     }
 
     /**

@@ -256,10 +256,15 @@ public class TestScenarioFactory {
         };
         insert lineItems;
         
+        // Step 1: Move to Sent status first
         invoices[0].Status__c = 'Sent';
+        invoices[1].Status__c = 'Sent';
+        update new List<Invoice__c>{invoices[0], invoices[1]};
+        
+        // Step 2: Move to Paid (only allowed from Sent)
         invoices[1].Status__c = 'Paid';
         invoices[1].Balance_Due__c = 0.0;
-        update invoices;
+        update invoices[1];
         
         return new Map<String, Invoice__c>{
             'sent' => invoices[0],
