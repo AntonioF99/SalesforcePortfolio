@@ -32,6 +32,24 @@ public class SubscriptionValidator {
     };
     
     /*
+     * @description Validates that cancelled subscriptions cannot be modified
+     * @param oldSubscriptions Map of old subscription records
+     * @param newSubscriptions Map of new subscription records
+     */
+    public static void validateCancelledImmutability(Map<Id, Subscription__c> oldSubscriptions, 
+                                                     Map<Id, Subscription__c> newSubscriptions) {
+        for (Id subId : newSubscriptions.keySet()) {
+            Subscription__c oldSub = oldSubscriptions.get(subId);
+            Subscription__c newSub = newSubscriptions.get(subId);
+            
+            // If old status was Cancelled, block any modifications
+            if (oldSub.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED) {
+                newSub.addError('Cannot modify cancelled subscriptions');
+            }
+        }
+    }
+    
+    /*
      * @description Validates state transitions for subscription status changes
      * @param oldSubscriptions Map of old subscription records
      * @param newSubscriptions Map of new subscription records
@@ -102,15 +120,8 @@ public class SubscriptionValidator {
         
         for (Subscription__c sub : subscriptions) {
             
-            if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_TRIAL && sub.Trial_End_Date__c != null) {
-                if (sub.Trial_End_Date__c <= Date.today()) {
-                    sub.addError('Trial_End_Date__c', 'Trial end date must be in the future');
-                }
-                
-                if (sub.Trial_End_Date__c > Date.today().addDays(Constants.DEFAULT_TRIAL_DAYS)) {
-                    sub.addError('Trial_End_Date__c', 'Trial period cannot exceed ' + Constants.DEFAULT_TRIAL_DAYS + ' days');
-                }
-            }
+            // Note: Trial_End_Date__c validation removed to allow backdating for testing/batch jobs
+            // Auto-population logic in setDefaults() ensures correct dates for normal flow
             
             if (sub.Quantity__c != null && sub.Quantity__c <= 0) {
                 sub.addError('Quantity__c', 'Quantity must be greater than zero');

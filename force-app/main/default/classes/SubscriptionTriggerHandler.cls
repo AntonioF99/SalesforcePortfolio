@@ -21,6 +21,9 @@ public class SubscriptionTriggerHandler implements IHandler {
         List<Subscription__c> subscriptions = (List<Subscription__c>) newMap.values();
         Map<Id, Subscription__c> oldSubscriptions = (Map<Id, Subscription__c>) oldMap;
 
+        // Validate cancelled subscriptions cannot be modified
+        SubscriptionValidator.validateCancelledImmutability(oldSubscriptions, (Map<Id, Subscription__c>) newMap);
+
         // Set defaults for fields when status changes (e.g., Trial_End_Date when Status → Trial)
         SubscriptionValidator.setDefaults(subscriptions);
 

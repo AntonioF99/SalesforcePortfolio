@@ -20,7 +20,8 @@ public class RecordTypeUtils {
         // Get Account information for business logic
         Set<Id> accountIds = new Set<Id>();
         for (Subscription__c sub : subscriptions) {
-            if (sub.Account__c != null) {
+            // Only auto-assign if RecordTypeId is not already set
+            if (sub.Account__c != null && sub.RecordTypeId == null) {
                 accountIds.add(sub.Account__c);
             }
         }
@@ -39,7 +40,8 @@ public class RecordTypeUtils {
         Id b2cRecordTypeId = getSubscriptionRecordTypeId('B2C_Subscription');
         
         for (Subscription__c sub : subscriptions) {
-            if (sub.Account__c != null && accountsMap.containsKey(sub.Account__c)) {
+            // Only auto-assign if RecordTypeId is not already set
+            if (sub.RecordTypeId == null && sub.Account__c != null && accountsMap.containsKey(sub.Account__c)) {
                 Account acc = accountsMap.get(sub.Account__c);
                 
                 // Business logic: B2B if company account or >10 employees

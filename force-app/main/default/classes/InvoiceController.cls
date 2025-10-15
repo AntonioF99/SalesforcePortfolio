@@ -232,10 +232,8 @@ public with sharing class InvoiceController {
         }
 
         // Early return validations: check status before attempting update
-        if (invoice.Status__c == Constants.INVOICE_STATUS_DRAFT) {
-            throw new AuraHandledException('Cannot mark a draft invoice as paid. Please send it first.');
-        }
-
+        // Note: Draft → Paid validation is handled by Validation Rule (Cannot_Pay_Draft_Invoice)
+        
         if (invoice.Status__c == Constants.INVOICE_STATUS_VOIDED) {
             throw new AuraHandledException('Cannot mark a voided invoice as paid');
         }

@@ -3,7 +3,7 @@
  * @author Antonio Franco
  * @date 2025-10-08
  */
-import { LightningElement, api } from 'lwc';
+import { LightningElement, api, wire } from 'lwc';
 import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import LightningConfirm from 'lightning/confirm';
@@ -15,6 +15,10 @@ import markAsPaid from '@salesforce/apex/InvoiceController.markAsPaid';
 // Subscription Apex methods
 import activateSubscription from '@salesforce/apex/SubscriptionController.activateSubscription';
 import cancelSubscription from '@salesforce/apex/SubscriptionController.cancelSubscription';
+
+// Status fields
+import INVOICE_STATUS_FIELD from '@salesforce/schema/Invoice__c.Status__c';
+import SUBSCRIPTION_STATUS_FIELD from '@salesforce/schema/Subscription__c.Status__c';
 
 export default class RapidActionsPanel extends LightningElement {
     // ========== PUBLIC PROPERTIES ==========
@@ -35,6 +39,36 @@ export default class RapidActionsPanel extends LightningElement {
      * Current status - will be fetched via getRecord
      */
     currentStatus;
+
+    // ========== WIRE METHODS ==========
+
+    /**
+     * Wire to get current record status
+     */
+    @wire(getRecord, { 
+        recordId: '$recordId', 
+        fields: '$statusFields' 
+    })
+    wiredRecord({ error, data }) {
+        if (data) {
+            const statusField = this.isInvoice ? INVOICE_STATUS_FIELD : SUBSCRIPTION_STATUS_FIELD;
+            this.currentStatus = getFieldValue(data, statusField);
+        } else if (error) {
+            console.error('Error loading record status:', error);
+        }
+    }
+
+    /**
+     * Get status fields dynamically based on object type
+     */
+    get statusFields() {
+        if (this.isInvoice) {
+            return [INVOICE_STATUS_FIELD];
+        } else if (this.isSubscription) {
+            return [SUBSCRIPTION_STATUS_FIELD];
+        }
+        return [];
+    }
 
     // ========== PRIVATE PROPERTIES ==========
 
@@ -109,6 +143,23 @@ export default class RapidActionsPanel extends LightningElement {
     }
 
     /**
+     * Get tooltip message for Mark as Paid button
+     * @returns {String}
+     */
+    get paidButtonTitle() {
+        if (this.currentStatus === 'Draft') {
+            return 'To mark invoice as paid, send it first';
+        }
+        if (this.currentStatus === 'Paid') {
+            return 'Invoice is already marked as paid';
+        }
+        if (this.currentStatus === 'Voided') {
+            return 'Cannot mark a voided invoice as paid';
+        }
+        return 'Mark this invoice as paid';
+    }
+
+    /**
      * Check if "Activate" button should be disabled
      * @returns {Boolean}
      */
@@ -171,6 +222,15 @@ export default class RapidActionsPanel extends LightningElement {
      * Handle "Mark as Paid" button click
      */
     async handleMarkAsPaid() {
+        // Preventive check for Draft status
+        if (this.currentStatus === 'Draft') {
+            this.showErrorToast(
+                'Cannot mark as paid', 
+                'Please send the invoice before marking it as paid'
+            );
+            return;
+        }
+
         // Show confirmation dialog
         const result = await LightningConfirm.open({
             message: 'Are you sure you want to mark this invoice as paid? This will set the balance to zero.',

@@ -12,6 +12,5 @@
         ISPICKVAL(Invoice__r.Status__c, &apos;Voided&apos;)
     )
 )</errorConditionFormula>
-    <errorDisplayField>Quantity__c</errorDisplayField>
     <errorMessage>Cannot modify line items after invoice has been sent. Create a new invoice or void this one.</errorMessage>
 </ValidationRule>

@@ -223,6 +223,7 @@ public class SubscriptionAutomationService {
 
             Invoice__c invoice = new Invoice__c(
                 Account__c = sub.Account__c,
+                Subscription__c = sub.Id,
                 Status__c = Constants.INVOICE_STATUS_DRAFT,
                 Invoice_Date__c = Date.today(),
                 Payment_Terms__c = Constants.PAYMENT_TERMS_NET_30
