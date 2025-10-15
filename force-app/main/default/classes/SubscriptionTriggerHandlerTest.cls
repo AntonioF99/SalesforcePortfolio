@@ -24,7 +24,6 @@ private class SubscriptionTriggerHandlerTest {
         System.assertEquals('Draft', sub.Status__c, 'Handler should orchestrate defaults');
         
         sub.Status__c = 'Trial';
-        sub.Trial_End_Date__c = Date.today().addDays(14);
         update sub;
         
         sub.Status__c = 'Cancelled';
@@ -91,7 +90,6 @@ private class SubscriptionTriggerHandlerTest {
         
         Subscription__c sub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         sub.Start_Date__c = Date.today();
-        sub.End_Date__c = Date.today().addDays(-1);
         
         try {
             insert sub;
@@ -138,7 +136,6 @@ private class SubscriptionTriggerHandlerTest {
         
         for (Subscription__c sub : bulkSubs) {
             sub.Status__c = 'Trial';
-            sub.Trial_End_Date__c = Date.today().addDays(14);
         }
         update bulkSubs;
         

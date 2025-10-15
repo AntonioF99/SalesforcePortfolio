@@ -102,12 +102,6 @@ public class SubscriptionValidator {
         
         for (Subscription__c sub : subscriptions) {
             
-            if (sub.Start_Date__c != null && sub.End_Date__c != null) {
-                if (sub.Start_Date__c >= sub.End_Date__c) {
-                    sub.addError('End_Date__c', 'End date must be after start date');
-                }
-            }
-            
             if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_TRIAL && sub.Trial_End_Date__c != null) {
                 if (sub.Trial_End_Date__c <= Date.today()) {
                     sub.addError('Trial_End_Date__c', 'Trial end date must be in the future');
@@ -130,10 +124,6 @@ public class SubscriptionValidator {
                 if (sub.Start_Date__c == null) {
                     sub.addError('Start_Date__c', 'Start date is required for active subscriptions');
                 }
-                
-                if (sub.Next_Billing_Date__c == null) {
-                    sub.Next_Billing_Date__c = Date.today().addMonths(1);
-                }
             }
         }
     }
@@ -150,8 +140,10 @@ public class SubscriptionValidator {
                 sub.Start_Date__c = Date.today();
             }
             
+            // Auto-populate Trial_End_Date based on Start_Date (not today!)
             if (sub.Status__c == Constants.SUBSCRIPTION_STATUS_TRIAL && sub.Trial_End_Date__c == null) {
-                sub.Trial_End_Date__c = Date.today().addDays(Constants.DEFAULT_TRIAL_DAYS);
+                Date baseDate = sub.Start_Date__c != null ? sub.Start_Date__c : Date.today();
+                sub.Trial_End_Date__c = baseDate.addDays(Constants.DEFAULT_TRIAL_DAYS);
             }
             
             // Auto-populate Cancellation Date when Status = Cancelled

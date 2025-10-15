@@ -27,7 +27,6 @@ private class PlatformEventPublisherTest {
                 Status__c = 'Active',
                 External_Id__c = 'EXT-SUB-' + i,
                 Start_Date__c = Date.today(),
-                End_Date__c = Date.today().addMonths(12)
             ));
         }
         
@@ -96,7 +95,6 @@ private class PlatformEventPublisherTest {
                 Account__c = acc.Id,
                 Status__c = 'Draft',
                 Start_Date__c = Date.today(),
-                End_Date__c = Date.today().addMonths(12)
             );
             
             Subscription__c newSub = new Subscription__c(
@@ -104,7 +102,6 @@ private class PlatformEventPublisherTest {
                 Account__c = acc.Id,
                 Status__c = 'Active',
                 Start_Date__c = Date.today(),
-                End_Date__c = Date.today().addMonths(12)
             );
             
             newSubscriptions.add(newSub);
@@ -190,7 +187,6 @@ private class PlatformEventPublisherTest {
                 Account__c = acc.Id,
                 Status__c = 'Active',
                 Start_Date__c = Date.today(),
-                End_Date__c = Date.today().addMonths(12)
             ));
             
             bulkInvoices.add(new Invoice__c(

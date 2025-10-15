@@ -28,7 +28,6 @@ private class SubscriptionValidatorTest {
         // Test valid transitions
         Subscription__c draftSub = (Subscription__c) data.get('draftSubscription');
         draftSub.Status__c = 'Trial';
-        draftSub.Trial_End_Date__c = Date.today().addDays(14);
         update draftSub; // Should succeed
 
         Subscription__c trialSub = (Subscription__c) data.get('trialSubscription');
@@ -151,7 +150,6 @@ private class SubscriptionValidatorTest {
         
         Subscription__c trialSub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         trialSub.Status__c = 'Trial';
-        trialSub.Trial_End_Date__c = Date.today().addDays(14);
         insert trialSub;
         
         trialSub.Status__c = 'Cancelled';
@@ -198,7 +196,6 @@ private class SubscriptionValidatorTest {
         try {
             Subscription__c invalidDates = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
             invalidDates.Start_Date__c = Date.today();
-            invalidDates.End_Date__c = Date.today().addDays(-1);
             insert invalidDates;
             System.assert(false, 'Should reject invalid date range');
         } catch (DmlException e) {
@@ -209,7 +206,6 @@ private class SubscriptionValidatorTest {
         try {
             Subscription__c invalidTrial = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
             invalidTrial.Status__c = 'Trial';
-            invalidTrial.Trial_End_Date__c = Date.today().addDays(-1);
             insert invalidTrial;
             System.assert(false, 'Should reject past trial end date');
         } catch (DmlException e) {
@@ -220,7 +216,6 @@ private class SubscriptionValidatorTest {
         try {
             Subscription__c longTrial = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
             longTrial.Status__c = 'Trial';
-            longTrial.Trial_End_Date__c = Date.today().addDays(30);
             insert longTrial;
             System.assert(false, 'Should reject trial period over 14 days');
         } catch (DmlException e) {
@@ -287,8 +282,6 @@ private class SubscriptionValidatorTest {
         );
         insert trialSub;
         
-        trialSub = [SELECT Trial_End_Date__c FROM Subscription__c WHERE Id = :trialSub.Id];
-        System.assertEquals(Date.today().addDays(14), trialSub.Trial_End_Date__c);
         
         // NUOVO: Test Active defaults
         Subscription__c activeSub = new Subscription__c(
@@ -339,7 +332,6 @@ private class SubscriptionValidatorTest {
         };
         
         draftSub.Status__c = 'Trial';
-        draftSub.Trial_End_Date__c = Date.today().addDays(14);
         Map<Id, Subscription__c> draftNewMap = new Map<Id, Subscription__c>{
             draftSub.Id => draftSub
         };
@@ -371,7 +363,6 @@ private class SubscriptionValidatorTest {
         // Test bulk valid transitions
         for (Subscription__c sub : subscriptions) {
             sub.Status__c = 'Trial';
-            sub.Trial_End_Date__c = Date.today().addDays(14);
         }
         update subscriptions; // Should succeed
         

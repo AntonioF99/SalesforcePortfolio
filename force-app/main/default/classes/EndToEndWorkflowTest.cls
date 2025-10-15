@@ -47,7 +47,6 @@ private class EndToEndWorkflowTest {
         Subscription__c sub = TestDataFactory.createSubscription(acc.Id, plan.Id);
         sub.Status__c = Constants.SUBSCRIPTION_STATUS_DRAFT;
         sub.Start_Date__c = Date.today();
-        sub.Trial_End_Date__c = Date.today().addDays(14);
         insert sub;
 
         // ASSERT: Subscription created in Draft
@@ -441,8 +440,6 @@ private class EndToEndWorkflowTest {
         Subscription__c sub = TestDataFactory.createSubscription(acc.Id, plan.Id);
         sub.Status__c = Constants.SUBSCRIPTION_STATUS_DRAFT;
         sub.Start_Date__c = Date.today();
-        sub.End_Date__c = Date.today().addMonths(3);
-        sub.Next_Billing_Date__c = Date.today();
         insert sub;
 
         Test.startTest();

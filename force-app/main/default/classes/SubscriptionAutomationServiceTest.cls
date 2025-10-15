@@ -288,7 +288,6 @@ private class SubscriptionAutomationServiceTest {
 
         Subscription__c sub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
         sub.Status__c = 'Trial';
-        sub.Trial_End_Date__c = Date.today().addDays(14);
         insert sub;
 
         Test.startTest();

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>SubscriptionController</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>Invoice_Line_Item__c.Cannot_Edit_After_Invoice_Sent</members>
+        <members>Invoice_Line_Item__c.Cannot_Delete_After_Invoice_Sent</members>
+        <name>ValidationRule</name>
+    </types>
+    <version>64.0</version>
+</Package>

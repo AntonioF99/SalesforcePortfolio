@@ -206,7 +206,6 @@ private class PlatformEventSubscriberTest {
                 Price_Plan__c = pricePlan.Id,
                 Status__c = 'Active',
                 Start_Date__c = Date.today(),
-                End_Date__c = Date.today().addMonths(12)
             ));
         }
         insert subscriptions;

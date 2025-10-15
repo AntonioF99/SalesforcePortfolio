@@ -9,12 +9,10 @@ public with sharing class SubscriptionController {
                    Status__c,
                    Quantity__c,
                    Start_Date__c,
-                   End_Date__c,
                    Trial_End_Date__c,
                    Cancellation_Reason__c,
                    Cancellation_Comments__c,
                    Cancellation_Date__c,
-                   Next_Billing_Date__c,
                    MRR__c,
                    ARR__c,
                    Total_Contract_Value__c
@@ -121,7 +119,6 @@ public with sharing class SubscriptionController {
                    Price_Plan__c, Price_Plan__r.Name,
                    Status__c,
                    Start_Date__c,
-                   End_Date__c,
                    MRR__c,
                    Total_Contract_Value__c
             FROM Subscription__c
@@ -145,7 +142,6 @@ public with sharing class SubscriptionController {
                    Price_Plan__c, Price_Plan__r.Name,
                    Status__c,
                    Start_Date__c,
-                   Next_Billing_Date__c,
                    MRR__c
             FROM Subscription__c
             WHERE Status__c IN (:Constants.SUBSCRIPTION_STATUS_ACTIVE, :Constants.SUBSCRIPTION_STATUS_TRIAL)

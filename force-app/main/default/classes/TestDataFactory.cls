@@ -109,7 +109,6 @@ public class TestDataFactory {
             Price_Plan__c = pricePlanId,
             Status__c = 'Draft',
             Start_Date__c = Date.today(),
-            End_Date__c = Date.today().addMonths(12),
             RecordTypeId = recordTypeId
         );
     }

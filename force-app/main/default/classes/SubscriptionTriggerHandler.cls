@@ -20,7 +20,10 @@ public class SubscriptionTriggerHandler implements IHandler {
     public void beforeUpdate(Map<Id, SObject> oldMap, Map<Id, SObject> newMap) {
         List<Subscription__c> subscriptions = (List<Subscription__c>) newMap.values();
         Map<Id, Subscription__c> oldSubscriptions = (Map<Id, Subscription__c>) oldMap;
-        
+
+        // Set defaults for fields when status changes (e.g., Trial_End_Date when Status → Trial)
+        SubscriptionValidator.setDefaults(subscriptions);
+
         SubscriptionValidator.validateStateTransitions(oldSubscriptions, (Map<Id, Subscription__c>) newMap);
         SubscriptionValidator.validateCancellationPermissions(oldSubscriptions, (Map<Id, Subscription__c>) newMap);
         SubscriptionValidator.validateBusinessRules(subscriptions, true);
