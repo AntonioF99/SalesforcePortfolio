@@ -17,7 +17,7 @@
  * @author Antonio Franco
  * @date 2025-10-16
  */
-public class DailyMaintenanceBatch implements Database.Batchable<Invoice__c>, Database.Stateful, Schedulable {
+public class DailyMaintenanceBatch implements Database.Batchable<sObject>, Database.Stateful, Schedulable {
 
     // Batch size for processing
     private static final Integer BATCH_SIZE = 200;
@@ -51,12 +51,13 @@ public class DailyMaintenanceBatch implements Database.Batchable<Invoice__c>, Da
     /**
      * Batch execute - processes overdue invoices
      */
-    public void execute(Database.BatchableContext bc, List<Invoice__c> scope) {
+    public void execute(Database.BatchableContext bc, List<sObject> scope) {
         if (scope == null || scope.isEmpty()) {
             return;
         }
 
-        processOverdueInvoices(scope);
+        List<Invoice__c> invoices = (List<Invoice__c>) scope;
+        processOverdueInvoices(invoices);
     }
 
     /**
