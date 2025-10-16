@@ -10,9 +10,6 @@ public class InvoiceValidator {
         Constants.INVOICE_STATUS_PAID,
         Constants.INVOICE_STATUS_VOIDED
     };
-    private static final Set<String> PROTECTED_FIELDS = new Set<String>{
-        'Tax_Rate__c', 'Balance_Due__c', 'Due_Date__c', 'Invoice_Date__c', 'Status__c'
-    };
     
     /*
      * @description Validates user permissions for invoice operations
@@ -78,9 +75,7 @@ public class InvoiceValidator {
                 inv.Tax_Rate__c = 0;
             }
             
-            if (inv.Balance_Due__c == null) {
-                inv.Balance_Due__c = 0;
-            }
+            // Note: Balance_Due__c is a formula field, cannot be set manually
         }
     }
     
@@ -158,21 +153,7 @@ public class InvoiceValidator {
         return invoiceIds;
     }
     
-    private static void validatePaidInvoiceModifications(List<Invoice__c> invoices, 
-                                                       Map<Id, Invoice__c> oldInvoices) {
-        
-        for (Invoice__c inv : invoices) {
-            Invoice__c oldInv = oldInvoices.get(inv.Id);
-            
-            if (LOCKED_STATUSES.contains(oldInv.Status__c)) {
-                
-                if (hasProtectedFieldChanges(inv, oldInv)) {
-                    inv.addError('You do not have permission to modify paid/cancelled invoices. ' +
-                               'Contact your administrator for the "Modify Paid Invoices" permission.');
-                }
-            }
-        }
-    }
+    // Note: validatePaidInvoiceModifications() removed - never called (dead code)
     
     private static void validateInvoiceDeletion(List<Invoice__c> invoices) {
         
@@ -203,20 +184,7 @@ public class InvoiceValidator {
         }
     }
     
-    /*
-    * @description Checks if any protected fields have been modified between old and new invoice versions
-    * @param newInv Updated invoice record
-    * @param oldInv Original invoice record before update
-    * @return true if any protected field has changed, false otherwise
-    */
-    private static Boolean hasProtectedFieldChanges(Invoice__c newInv, Invoice__c oldInv){
-
-        return (newInv.Tax_Rate__c != oldInv.Tax_Rate__c ||
-                newInv.Balance_Due__c != oldInv.Balance_Due__c ||
-                newInv.Due_Date__c != oldInv.Due_Date__c ||
-                newInv.Invoice_Date__c != oldInv.Invoice_Date__c ||
-                newInv.Status__c != oldInv.Status__c);
-    }
+    // Note: hasProtectedFieldChanges() removed - was only called by removed validatePaidInvoiceModifications() (dead code)
     
     private static Decimal getTaxRate(String state, String country) {
         Decimal taxRate = Constants.TAX_RATES_BY_COUNTRY.get(country);

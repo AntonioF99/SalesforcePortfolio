@@ -74,19 +74,6 @@ private class InvoiceValidatorTest {
         // Note: Subtotal__c, Tax_Amount__c, and Balance_Due__c are formula fields
         // They are calculated from line items and cannot be set to negative values
         // No validation needed as they're read-only calculated fields
-        Boolean validationCaught = false;
-        try {
-            Invoice__c testInvoice = new Invoice__c(
-                Account__c = acc.Id,
-                Balance_Due__c = -110.0
-            );
-            insert testInvoice;
-        } catch (DmlException e) {
-            validationCaught = true;
-            System.assert(e.getMessage().contains('Balance due cannot be negative'), 
-                         'Should catch negative balance validation: ' + e.getMessage());
-        }
-        System.assert(validationCaught, 'Should have validation errors for negative amounts');
         
         // Test status-specific validations - Sent without subtotal
         try {
