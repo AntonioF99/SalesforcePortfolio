@@ -95,7 +95,7 @@ This project maintains high code quality standards:
 
 ### Testing
 
-- **Apex Tests**: Minimum 75% coverage (target: 90%+)
+- **Apex Tests**: Minimum 75% coverage required (current: 71%, target: 90%+)
 - **LWC Tests**: Jest for component testing
 - **Test Factories**: Use `TestDataFactory` and `TestScenarioFactory`
 - Run: `npm run test:unit`

@@ -337,7 +337,7 @@ Success / Failure Notification
 1. **Bulkification**: All operations handle 200+ records
 2. **Governor Limits**: Conscious design to avoid limits
 3. **Security**: FLS, CRUD, and sharing rule enforcement
-4. **Testing**: 75%+ code coverage (target: 90%+)
+4. **Testing**: Minimum 75% code coverage required (current: 71%, target: 90%+)
 5. **Separation of Concerns**: Clear layer boundaries
 
 ## 🔧 Utility Components
