@@ -27,42 +27,8 @@ public with sharing class InvoiceController {
         ];
     }
     
-    @AuraEnabled(cacheable=true)
-    public static List<Invoice__c> getInvoicesByAccount(Id accountId) {
-        return [
-            SELECT Id, Name,
-                   Account__c, Account__r.Name,
-                   Status__c,
-                   Invoice_Date__c,
-                   Due_Date__c,
-                   Total_Amount__c,
-                   Balance_Due__c,
-                   RecordType.DeveloperName
-            FROM Invoice__c
-            WHERE Account__c = :accountId
-            WITH SECURITY_ENFORCED
-            ORDER BY Invoice_Date__c DESC
-            LIMIT 100
-        ];
-    }
-
-    @AuraEnabled(cacheable=true)
-    public static List<Invoice__c> getRecentInvoices() {
-        return [
-            SELECT Id, Name,
-                   Account__c, Account__r.Name,
-                   Status__c,
-                   Invoice_Date__c,
-                   Due_Date__c,
-                   Total_Amount__c,
-                   Balance_Due__c,
-                   RecordType.DeveloperName
-            FROM Invoice__c
-            WITH SECURITY_ENFORCED
-            ORDER BY Invoice_Date__c DESC
-            LIMIT 50
-        ];
-    }
+    // Note: getInvoicesByAccount() and getRecentInvoices() methods removed
+    // They were never called by any LWC/Aura components (dead code)
     
     @AuraEnabled(cacheable=true)
     public static List<Invoice__c> getOverdueInvoices() {
