@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Customer Success team access to subscription data and customer health metrics</description>
+    <description
+  >Customer Success team access to subscription data and customer health metrics</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Customer Success Access</label>
     <objectPermissions>

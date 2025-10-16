@@ -1,12 +1,14 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Cannot_Pay_Draft_Invoice</fullName>
     <active>true</active>
-    <description>Prevents marking draft invoices as paid. Invoice must be sent first.</description>
+    <description
+  >Prevents marking draft invoices as paid. Invoice must be sent first.</description>
     <errorConditionFormula>AND(
     ISPICKVAL(PRIORVALUE(Status__c), &apos;Draft&apos;),
     ISPICKVAL(Status__c, &apos;Paid&apos;)
 )</errorConditionFormula>
     <errorDisplayField>Status__c</errorDisplayField>
-    <errorMessage>Cannot mark a draft invoice as paid. Please send it first.</errorMessage>
+    <errorMessage
+  >Cannot mark a draft invoice as paid. Please send it first.</errorMessage>
 </ValidationRule>

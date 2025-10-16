@@ -1,164 +1,181 @@
 <template>
-    <lightning-card title="Overdue Invoices" icon-name="standard:task">
-
-        <!-- Header with metrics -->
-        <div slot="actions" class="slds-grid slds-grid_align-end slds-m-right_small">
-            <template if:true={hasOverdueInvoices}>
-                <div class="slds-m-right_medium">
-                    <span class="slds-text-body_small slds-text-color_weak">Total Overdue:</span>
-                    <span class="slds-text-heading_small slds-m-left_xx-small">
-                        <lightning-formatted-number
-                            value={totalOverdueAmount}
-                            format-style="currency"
-                            currency-code="EUR"
-                            minimum-fraction-digits="2"
-                        ></lightning-formatted-number>
-                    </span>
-                </div>
-            </template>
+  <lightning-card title="Overdue Invoices" icon-name="standard:task">
+    <!-- Header with metrics -->
+    <div
+      slot="actions"
+      class="slds-grid slds-grid_align-end slds-m-right_small"
+    >
+      <template if:true={hasOverdueInvoices}>
+        <div class="slds-m-right_medium">
+          <span class="slds-text-body_small slds-text-color_weak"
+            >Total Overdue:</span
+          >
+          <span class="slds-text-heading_small slds-m-left_xx-small">
+            <lightning-formatted-number
+              value={totalOverdueAmount}
+              format-style="currency"
+              currency-code="EUR"
+              minimum-fraction-digits="2"
+            ></lightning-formatted-number>
+          </span>
         </div>
+      </template>
+    </div>
 
-        <div class="slds-card__body slds-card__body_inner">
+    <div class="slds-card__body slds-card__body_inner">
+      <!-- Loading -->
+      <template if:true={isLoading}>
+        <div class="slds-align_absolute-center slds-p-around_large">
+          <lightning-spinner
+            alternative-text="Loading overdue invoices..."
+            size="medium"
+          ></lightning-spinner>
+        </div>
+      </template>
 
-            <!-- Loading -->
-            <template if:true={isLoading}>
-                <div class="slds-align_absolute-center slds-p-around_large">
-                    <lightning-spinner
-                        alternative-text="Loading overdue invoices..."
-                        size="medium"
-                    ></lightning-spinner>
-                </div>
-            </template>
+      <!-- Error -->
+      <template if:true={error}>
+        <div class="slds-box slds-theme_error slds-m-around_small">
+          <div class="slds-grid slds-grid_vertical-align-center">
+            <lightning-icon
+              icon-name="utility:error"
+              size="small"
+              variant="inverse"
+              class="slds-m-right_small"
+            ></lightning-icon>
+            <div class="slds-text-color_inverse">
+              <p class="slds-text-heading_small">Error</p>
+              <p class="slds-m-top_x-small">{error}</p>
+            </div>
+          </div>
+        </div>
+      </template>
 
-            <!-- Error -->
-            <template if:true={error}>
-                <div class="slds-box slds-theme_error slds-m-around_small">
-                    <div class="slds-grid slds-grid_vertical-align-center">
-                        <lightning-icon
-                            icon-name="utility:error"
-                            size="small"
-                            variant="inverse"
-                            class="slds-m-right_small"
-                        ></lightning-icon>
-                        <div class="slds-text-color_inverse">
-                            <p class="slds-text-heading_small">Error</p>
-                            <p class="slds-m-top_x-small">{error}</p>
-                        </div>
+      <!-- Overdue Invoices List -->
+      <template if:true={hasOverdueInvoices}>
+        <template for:each={overdueInvoices} for:item="invoice">
+          <div
+            key={invoice.Id}
+            class="slds-box slds-box_xx-small slds-m-bottom_x-small"
+          >
+            <div
+              class="slds-grid slds-wrap slds-gutters_small slds-grid_vertical-align-center"
+            >
+              <!-- Invoice Info - Full width on mobile, 4 cols on desktop -->
+              <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-12">
+                <div class="slds-media slds-media_small">
+                  <div class="slds-media__figure">
+                    <lightning-icon
+                      icon-name="standard:invoice"
+                      size="small"
+                    ></lightning-icon>
+                  </div>
+                  <div class="slds-media__body">
+                    <div class="slds-text-heading_small slds-truncate">
+                      <a
+                        data-id={invoice.Id}
+                        onclick={handleViewInvoice}
+                        class="slds-text-link"
+                      >
+                        {invoice.Name}
+                      </a>
                     </div>
-                </div>
-            </template>
-
-            <!-- Overdue Invoices List -->
-            <template if:true={hasOverdueInvoices}>
-                <template for:each={overdueInvoices} for:item="invoice">
-                    <div key={invoice.Id} class="slds-box slds-box_xx-small slds-m-bottom_x-small">
-                        <div class="slds-grid slds-wrap slds-gutters_small slds-grid_vertical-align-center">
-
-                            <!-- Invoice Info - Full width on mobile, 4 cols on desktop -->
-                            <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-12">
-                                <div class="slds-media slds-media_small">
-                                    <div class="slds-media__figure">
-                                        <lightning-icon
-                                            icon-name="standard:invoice"
-                                            size="small"
-                                        ></lightning-icon>
-                                    </div>
-                                    <div class="slds-media__body">
-                                        <div class="slds-text-heading_small slds-truncate">
-                                            <a data-id={invoice.Id} onclick={handleViewInvoice} class="slds-text-link">
-                                                {invoice.Name}
-                                            </a>
-                                        </div>
-                                        <div class="slds-text-body_small slds-text-color_weak slds-truncate">
-                                            {invoice.AccountName}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Amount - Half width on mobile, 2 cols on desktop -->
-                            <div class="slds-col slds-size_1-of-2 slds-large-size_2-of-12">
-                                <div class="slds-text-body_small slds-text-color_weak">Amount</div>
-                                <div class="slds-text-heading_small">
-                                    <lightning-formatted-number
-                                        value={invoice.Total_Amount__c}
-                                        format-style="currency"
-                                        currency-code="EUR"
-                                        minimum-fraction-digits="2"
-                                    ></lightning-formatted-number>
-                                </div>
-                            </div>
-
-                            <!-- Days Overdue Badge - Half width on mobile, 3 cols on desktop -->
-                            <div class="slds-col slds-size_1-of-2 slds-large-size_3-of-12">
-                                <div>
-                                    <span class={invoice.overdueClass}>
-                                        <lightning-icon
-                                            icon-name="utility:warning"
-                                            size="xx-small"
-                                            class="slds-m-right_xx-small"
-                                        ></lightning-icon>
-                                        {invoice.overdueLabel}
-                                    </span>
-                                </div>
-                                <template if:true={invoice.hasReminders}>
-                                    <div class="slds-m-top_xx-small">
-                                        <span class="slds-badge slds-badge_lightest">
-                                            <lightning-icon
-                                                icon-name="utility:email"
-                                                size="xx-small"
-                                                class="slds-m-right_xx-small"
-                                            ></lightning-icon>
-                                            {invoice.reminderBadge}
-                                        </span>
-                                    </div>
-                                </template>
-                            </div>
-
-                            <!-- Action Button - Full width on mobile, 3 cols on desktop -->
-                            <div class="slds-col slds-size_1-of-1 slds-large-size_3-of-12 slds-large-text-align_right">
-                                <lightning-button
-                                    variant="brand"
-                                    label="Send"
-                                    title="Send Reminder"
-                                    icon-name="utility:email"
-                                    icon-position="left"
-                                    data-id={invoice.Id}
-                                    onclick={handleSendReminder}
-                                    class="slds-m-top_x-small slds-large-m-top_none"
-                                ></lightning-button>
-                            </div>
-
-                        </div>
+                    <div
+                      class="slds-text-body_small slds-text-color_weak slds-truncate"
+                    >
+                      {invoice.AccountName}
                     </div>
-                </template>
+                  </div>
+                </div>
+              </div>
 
-                <!-- Count badge at bottom -->
-                <div class="slds-text-align_center slds-m-top_medium">
+              <!-- Amount - Half width on mobile, 2 cols on desktop -->
+              <div class="slds-col slds-size_1-of-2 slds-large-size_2-of-12">
+                <div class="slds-text-body_small slds-text-color_weak">
+                  Amount
+                </div>
+                <div class="slds-text-heading_small">
+                  <lightning-formatted-number
+                    value={invoice.Total_Amount__c}
+                    format-style="currency"
+                    currency-code="EUR"
+                    minimum-fraction-digits="2"
+                  ></lightning-formatted-number>
+                </div>
+              </div>
+
+              <!-- Days Overdue Badge - Half width on mobile, 3 cols on desktop -->
+              <div class="slds-col slds-size_1-of-2 slds-large-size_3-of-12">
+                <div>
+                  <span class={invoice.overdueClass}>
+                    <lightning-icon
+                      icon-name="utility:warning"
+                      size="xx-small"
+                      class="slds-m-right_xx-small"
+                    ></lightning-icon>
+                    {invoice.overdueLabel}
+                  </span>
+                </div>
+                <template if:true={invoice.hasReminders}>
+                  <div class="slds-m-top_xx-small">
                     <span class="slds-badge slds-badge_lightest">
-                        {overdueCount} Overdue {invoiceCountLabel}
+                      <lightning-icon
+                        icon-name="utility:email"
+                        size="xx-small"
+                        class="slds-m-right_xx-small"
+                      ></lightning-icon>
+                      {invoice.reminderBadge}
                     </span>
-                </div>
-            </template>
+                  </div>
+                </template>
+              </div>
 
-            <!-- No Data -->
-            <template if:true={showNoDataMessage}>
-                <div class="slds-align_absolute-center slds-p-around_large">
-                    <div class="slds-text-align_center">
-                        <lightning-icon
-                            icon-name="utility:success"
-                            size="large"
-                            variant="success"
-                            class="slds-m-bottom_small"
-                        ></lightning-icon>
-                        <p class="slds-text-heading_small">No overdue invoices</p>
-                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
-                            All invoices are paid or within due date. Great job!
-                        </p>
-                    </div>
-                </div>
-            </template>
+              <!-- Action Button - Full width on mobile, 3 cols on desktop -->
+              <div
+                class="slds-col slds-size_1-of-1 slds-large-size_3-of-12 slds-large-text-align_right"
+              >
+                <lightning-button
+                  variant="brand"
+                  label="Send"
+                  title="Send Reminder"
+                  icon-name="utility:email"
+                  icon-position="left"
+                  data-id={invoice.Id}
+                  onclick={handleSendReminder}
+                  class="slds-m-top_x-small slds-large-m-top_none"
+                ></lightning-button>
+              </div>
+            </div>
+          </div>
+        </template>
 
+        <!-- Count badge at bottom -->
+        <div class="slds-text-align_center slds-m-top_medium">
+          <span class="slds-badge slds-badge_lightest">
+            {overdueCount} Overdue {invoiceCountLabel}
+          </span>
         </div>
-    </lightning-card>
+      </template>
+
+      <!-- No Data -->
+      <template if:true={showNoDataMessage}>
+        <div class="slds-align_absolute-center slds-p-around_large">
+          <div class="slds-text-align_center">
+            <lightning-icon
+              icon-name="utility:success"
+              size="large"
+              variant="success"
+              class="slds-m-bottom_small"
+            ></lightning-icon>
+            <p class="slds-text-heading_small">No overdue invoices</p>
+            <p
+              class="slds-text-body_small slds-text-color_weak slds-m-top_x-small"
+            >
+              All invoices are paid or within due date. Great job!
+            </p>
+          </div>
+        </div>
+      </template>
+    </div>
+  </lightning-card>
 </template>

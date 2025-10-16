@@ -2,30 +2,30 @@ name: Deploy to Org
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
+          node-version: "18"
+
       - name: Install Salesforce CLI
         run: |
           npm install -g @salesforce/cli
-      
+
       - name: Authorize Salesforce Org
         run: |
           echo "${{ secrets.SFDX_AUTH_URL }}" > auth-file.txt
           sf org login sfdx-url --sfdx-url-file auth-file.txt --alias PortfolioOrg --set-default
           rm auth-file.txt
-      
+
       - name: Deploy to Org
         run: |
           sf project deploy start --source-dir force-app --target-org PortfolioOrg

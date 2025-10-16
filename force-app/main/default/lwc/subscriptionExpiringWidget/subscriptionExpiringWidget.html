@@ -1,99 +1,106 @@
 <template>
-    <lightning-card title={widgetTitle} icon-name="standard:recurrent_activation">
-
-        <div class="slds-card__body slds-card__body_inner">
-
-            <!-- Loading -->
-            <template if:true={isLoading}>
-                <div class="slds-align_absolute-center slds-p-around_medium">
-                    <lightning-spinner
-                        alternative-text="Loading expiring subscriptions..."
-                        size="small"
-                    ></lightning-spinner>
-                </div>
-            </template>
-
-            <!-- Error -->
-            <template if:true={error}>
-                <div class="slds-box slds-theme_error slds-m-around_x-small">
-                    <p class="slds-text-color_inverse">{error}</p>
-                </div>
-            </template>
-
-            <!-- Expiring Subscriptions -->
-            <template if:true={hasExpiring}>
-                <ul class="slds-has-dividers_around-space slds-p-around_medium">
-                    <template for:each={expiringSubscriptions} for:item="sub">
-                        <li key={sub.Id} class="slds-item slds-p-around_medium">
-                            <div class="slds-grid slds-grid_align-spread slds-wrap">
-
-                                <!-- Subscription Info - 4 cols -->
-                                <div class="slds-col slds-size_1-of-3 slds-p-right_medium">
-                                    <div class="slds-text-heading_small slds-truncate">
-                                        <a data-id={sub.Id} onclick={handleViewSubscription} class="slds-text-link">
-                                            {sub.Name}
-                                        </a>
-                                    </div>
-                                    <div class="slds-text-body_small slds-text-color_weak slds-truncate">
-                                        {sub.AccountName}
-                                    </div>
-                                </div>
-
-                                <!-- Days Remaining Badge - 5 cols -->
-                                <div class="slds-col slds-size_1-of-3 slds-align_absolute-center">
-                                    <span class={sub.urgencyClass}>
-                                        <lightning-icon
-                                            icon-name="utility:clock"
-                                            size="xx-small"
-                                            class="slds-m-right_xx-small"
-                                        ></lightning-icon>
-                                        {sub.urgencyLabel}
-                                    </span>
-                                </div>
-
-                                <!-- Action Button - 3 cols -->
-                                <div class="slds-col slds-size_1-of-3 slds-text-align_right">
-                                    <lightning-button
-                                        variant="brand"
-                                        label="Activate"
-                                        icon-name="utility:check"
-                                        data-id={sub.Id}
-                                        onclick={handleConvertToPaid}
-                                        icon-position="left"
-                                    ></lightning-button>
-                                </div>
-
-                            </div>
-                        </li>
-                    </template>
-                </ul>
-
-                <!-- Count -->
-                <div class="slds-text-align_center slds-m-top_small slds-p-top_small slds-border_top">
-                    <span class="slds-text-body_small slds-text-color_weak">
-                        {expiringCount} {trialCountLabel} Expiring Soon
-                    </span>
-                </div>
-            </template>
-
-            <!-- No Data -->
-            <template if:true={showNoDataMessage}>
-                <div class="slds-align_absolute-center slds-p-around_medium">
-                    <div class="slds-text-align_center">
-                        <lightning-icon
-                            icon-name="utility:success"
-                            size="medium"
-                            variant="success"
-                            class="slds-m-bottom_x-small"
-                        ></lightning-icon>
-                        <p class="slds-text-heading_small">No trials expiring soon</p>
-                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                            No action needed in the next {daysAhead} days
-                        </p>
-                    </div>
-                </div>
-            </template>
-
+  <lightning-card title={widgetTitle} icon-name="standard:recurrent_activation">
+    <div class="slds-card__body slds-card__body_inner">
+      <!-- Loading -->
+      <template if:true={isLoading}>
+        <div class="slds-align_absolute-center slds-p-around_medium">
+          <lightning-spinner
+            alternative-text="Loading expiring subscriptions..."
+            size="small"
+          ></lightning-spinner>
         </div>
-    </lightning-card>
+      </template>
+
+      <!-- Error -->
+      <template if:true={error}>
+        <div class="slds-box slds-theme_error slds-m-around_x-small">
+          <p class="slds-text-color_inverse">{error}</p>
+        </div>
+      </template>
+
+      <!-- Expiring Subscriptions -->
+      <template if:true={hasExpiring}>
+        <ul class="slds-has-dividers_around-space slds-p-around_medium">
+          <template for:each={expiringSubscriptions} for:item="sub">
+            <li key={sub.Id} class="slds-item slds-p-around_medium">
+              <div class="slds-grid slds-grid_align-spread slds-wrap">
+                <!-- Subscription Info - 4 cols -->
+                <div class="slds-col slds-size_1-of-3 slds-p-right_medium">
+                  <div class="slds-text-heading_small slds-truncate">
+                    <a
+                      data-id={sub.Id}
+                      onclick={handleViewSubscription}
+                      class="slds-text-link"
+                    >
+                      {sub.Name}
+                    </a>
+                  </div>
+                  <div
+                    class="slds-text-body_small slds-text-color_weak slds-truncate"
+                  >
+                    {sub.AccountName}
+                  </div>
+                </div>
+
+                <!-- Days Remaining Badge - 5 cols -->
+                <div
+                  class="slds-col slds-size_1-of-3 slds-align_absolute-center"
+                >
+                  <span class={sub.urgencyClass}>
+                    <lightning-icon
+                      icon-name="utility:clock"
+                      size="xx-small"
+                      class="slds-m-right_xx-small"
+                    ></lightning-icon>
+                    {sub.urgencyLabel}
+                  </span>
+                </div>
+
+                <!-- Action Button - 3 cols -->
+                <div class="slds-col slds-size_1-of-3 slds-text-align_right">
+                  <lightning-button
+                    variant="brand"
+                    label="Activate"
+                    icon-name="utility:check"
+                    data-id={sub.Id}
+                    onclick={handleConvertToPaid}
+                    icon-position="left"
+                  ></lightning-button>
+                </div>
+              </div>
+            </li>
+          </template>
+        </ul>
+
+        <!-- Count -->
+        <div
+          class="slds-text-align_center slds-m-top_small slds-p-top_small slds-border_top"
+        >
+          <span class="slds-text-body_small slds-text-color_weak">
+            {expiringCount} {trialCountLabel} Expiring Soon
+          </span>
+        </div>
+      </template>
+
+      <!-- No Data -->
+      <template if:true={showNoDataMessage}>
+        <div class="slds-align_absolute-center slds-p-around_medium">
+          <div class="slds-text-align_center">
+            <lightning-icon
+              icon-name="utility:success"
+              size="medium"
+              variant="success"
+              class="slds-m-bottom_x-small"
+            ></lightning-icon>
+            <p class="slds-text-heading_small">No trials expiring soon</p>
+            <p
+              class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small"
+            >
+              No action needed in the next {daysAhead} days
+            </p>
+          </div>
+        </div>
+      </template>
+    </div>
+  </lightning-card>
 </template>

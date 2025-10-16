@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Status_Transition_Terminal</fullName>
     <active>true</active>
@@ -8,5 +8,6 @@
     AND(TEXT(PRIORVALUE(Status__c)) = "Cancelled", TEXT(Status__c) != "Cancelled")
 )</errorConditionFormula>
     <errorDisplayField>Status__c</errorDisplayField>
-    <errorMessage>Cannot change status from Cancelled. This is a terminal status.</errorMessage>
+    <errorMessage
+  >Cannot change status from Cancelled. This is a terminal status.</errorMessage>
 </ValidationRule>

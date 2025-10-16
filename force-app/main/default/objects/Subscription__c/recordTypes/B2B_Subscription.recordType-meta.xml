@@ -1,9 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>B2B_Subscription</fullName>
     <active>true</active>
     <businessProcess>Standard</businessProcess>
-    <description>Business-to-Business subscriptions with contract management focus</description>
+    <description
+  >Business-to-Business subscriptions with contract management focus</description>
     <label>B2B Subscription</label>
     <picklistValues>
         <picklist>Status__c</picklist>

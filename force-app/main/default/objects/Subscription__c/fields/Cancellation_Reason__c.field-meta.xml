@@ -1,8 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Cancellation_Reason__c</fullName>
-    <description>Reason for subscription cancellation. Required when status is set to Cancelled.</description>
-    <inlineHelpText>This field becomes required when the subscription status is changed to Cancelled. Select the primary reason for cancellation.</inlineHelpText>
+    <description
+  >Reason for subscription cancellation. Required when status is set to Cancelled.</description>
+    <inlineHelpText
+  >This field becomes required when the subscription status is changed to Cancelled. Select the primary reason for cancellation.</inlineHelpText>
     <label>Cancellation Reason</label>
     <required>false</required>
     <trackHistory>true</trackHistory>

@@ -1,6 +1,7 @@
 # Salesforce Portfolio - Comprehensive Manual Testing Guide
 
 ## Table of Contents
+
 1. [Setup & Prerequisites](#setup--prerequisites)
 2. [Subscription Lifecycle Workflows](#subscription-lifecycle-workflows)
 3. [Invoice Generation & Management](#invoice-generation--management)
@@ -21,6 +22,7 @@
 Before testing any workflow, create the following baseline data in your Salesforce org:
 
 #### 1. Create Test Accounts
+
 ```
 Navigate to: Accounts Tab → New
 Required Fields:
@@ -32,10 +34,12 @@ Save the record
 ```
 
 **Verification:**
+
 - Account record created successfully
 - Record ID starts with `001`
 
 #### 2. Create Price Plans
+
 ```
 Navigate to: Price Plans Tab → New
 Create three price plans:
@@ -66,11 +70,13 @@ Plan 3 - Enterprise:
 ```
 
 **Verification:**
+
 - All three Price Plans visible in list view
 - Unit Price displays with currency symbol
 - Billing Frequency populated correctly
 
 #### 3. Enable Debug Logs
+
 ```
 Navigate to: Setup → Debug Logs → New
 Traced Entity Type: User
@@ -89,10 +95,12 @@ Save
 **Purpose:** Test subscription creation with default values
 
 **Setup:**
+
 - Ensure at least one Account exists
 - At least one Price Plan exists
 
 **Steps:**
+
 1. Navigate to `Subscriptions Tab → New`
 2. Fill in fields:
    - **Account**: Select "Acme Corporation"
@@ -103,6 +111,7 @@ Save
 3. Click **Save**
 
 **Expected Results:**
+
 - ✅ Record saves successfully
 - ✅ Status auto-populated to "Draft"
 - ✅ Start Date auto-populated to Today
@@ -110,6 +119,7 @@ Save
 - ✅ MRR and ARR calculated automatically (5 × 99 = 495 MRR)
 
 **Verification Queries:**
+
 ```sql
 SELECT Id, Name, Status__c, Start_Date__c, MRR__c, ARR__c, Quantity__c
 FROM Subscription__c
@@ -119,6 +129,7 @@ LIMIT 1
 ```
 
 **Debug Log Checks:**
+
 - Look for: `SubscriptionTriggerHandler.beforeInsert`
 - Look for: `SubscriptionValidator.setDefaults`
 - Look for: `RecordTypeUtils.assignSubscriptionRecordTypes`
@@ -130,9 +141,11 @@ LIMIT 1
 **Purpose:** Test status transition and trial date auto-population
 
 **Setup:**
+
 - Complete Workflow 1 (Draft subscription exists)
 
 **Steps:**
+
 1. Open the Draft subscription created in Workflow 1
 2. Click **Edit**
 3. Change **Status** to "Trial"
@@ -140,6 +153,7 @@ LIMIT 1
 5. Click **Save**
 
 **Expected Results:**
+
 - ✅ Record saves successfully
 - ✅ Status updated to "Trial"
 - ✅ Trial End Date auto-populated to 14 days from today (Basic Plan default)
@@ -150,6 +164,7 @@ LIMIT 1
 - ✅ Platform event published
 
 **Verification Queries:**
+
 ```sql
 -- Check subscription
 SELECT Id, Name, Status__c, Trial_End_Date__c
@@ -169,6 +184,7 @@ WHERE Id = '[Your Account Id]'
 ```
 
 **Debug Log Checks:**
+
 - Look for: `SubscriptionTriggerHandler.afterUpdate`
 - Look for: `SubscriptionAutomationService.processStatusChanges`
 - Look for: `createOnboardingTasks`
@@ -176,6 +192,7 @@ WHERE Id = '[Your Account Id]'
 
 **Validation Rule Tests:**
 Try these invalid scenarios to verify validation rules:
+
 - ❌ Set Trial End Date to yesterday → Should fail: "Trial end date must be in the future"
 - ❌ Set Trial End Date to 400 days ahead → Should fail: "Trial period cannot exceed 365 days"
 
@@ -186,9 +203,11 @@ Try these invalid scenarios to verify validation rules:
 **Purpose:** Test activation workflow and automatic invoice generation
 
 **Setup:**
+
 - Complete Workflow 2 (Trial subscription exists)
 
 **Steps:**
+
 1. Open the Trial subscription
 2. Click **Edit**
 3. Change **Status** to "Active"
@@ -196,6 +215,7 @@ Try these invalid scenarios to verify validation rules:
 5. Click **Save**
 
 **Expected Results:**
+
 - ✅ Record saves successfully
 - ✅ Status updated to "Active"
 - ✅ **NEW INVOICE CREATED AUTOMATICALLY** (Draft status)
@@ -212,6 +232,7 @@ Try these invalid scenarios to verify validation rules:
 - ✅ Platform event published: `Subscription_Event__e` with Event Type "StatusChanged"
 
 **Verification Queries:**
+
 ```sql
 -- Check subscription
 SELECT Id, Name, Status__c, Next_Billing_Date__c
@@ -233,6 +254,7 @@ WHERE Subscription__c = '[Your Subscription Id]'
 ```
 
 **Debug Log Checks:**
+
 - Look for: `SubscriptionTriggerHandler.afterUpdate`
 - Look for: `handleActivatedSubscriptions`
 - Look for: `SubscriptionAutomationService.generateInvoicesForActiveSubscriptions`
@@ -240,6 +262,7 @@ WHERE Subscription__c = '[Your Subscription Id]'
 - Look for: `PlatformEventPublisher.publishInvoiceEvents`
 
 **Important Notes:**
+
 - If invoice already exists for current period, no duplicate invoice is created
 - Invoice remains in Draft status (must be manually sent)
 - Tax calculation happens automatically based on Account Billing Country
@@ -251,15 +274,18 @@ WHERE Subscription__c = '[Your Subscription Id]'
 **Purpose:** Test suspension workflow and at-risk account status
 
 **Setup:**
+
 - Complete Workflow 3 (Active subscription exists)
 
 **Steps:**
+
 1. Open the Active subscription
 2. Click **Edit**
 3. Change **Status** to "Suspended"
 4. Click **Save**
 
 **Expected Results:**
+
 - ✅ Status updated to "Suspended"
 - ✅ URGENT task created: "URGENT: Subscription Suspended - [Account Name]"
 - ✅ Task Priority set to "High"
@@ -269,6 +295,7 @@ WHERE Subscription__c = '[Your Subscription Id]'
 - ✅ Platform event published with Event Type "StatusChanged"
 
 **Verification Queries:**
+
 ```sql
 -- Check subscription
 SELECT Id, Name, Status__c
@@ -288,6 +315,7 @@ WHERE Id = '[Your Account Id]'
 ```
 
 **Valid Transitions from Suspended:**
+
 - ✅ Suspended → Active (reactivation)
 - ✅ Suspended → Cancelled
 - ❌ Suspended → Draft (invalid)
@@ -300,9 +328,11 @@ WHERE Id = '[Your Account Id]'
 **Purpose:** Test cancellation workflow with mandatory reason
 
 **Setup:**
+
 - Active or Suspended subscription exists
 
 **Steps:**
+
 1. Open the subscription
 2. Click **Edit**
 3. Change **Status** to "Cancelled"
@@ -310,9 +340,11 @@ WHERE Id = '[Your Account Id]'
 5. Click **Save**
 
 **Expected Results:**
+
 - ❌ Save fails with error: "Cancellation reason is required when status is Cancelled. Please select a reason from the dropdown."
 
 **Steps (Correct Flow):**
+
 1. Click **Edit** again
 2. Change **Status** to "Cancelled"
 3. **Fill Cancellation Reason**: Select "Price Too High"
@@ -320,6 +352,7 @@ WHERE Id = '[Your Account Id]'
 5. Click **Save**
 
 **Expected Results:**
+
 - ✅ Record saves successfully
 - ✅ Status updated to "Cancelled"
 - ✅ Cancellation Date auto-populated to Today
@@ -331,6 +364,7 @@ WHERE Id = '[Your Account Id]'
 - ✅ Subscription is now TERMINAL (cannot change status anymore)
 
 **Verification Queries:**
+
 ```sql
 SELECT Id, Name, Status__c, Cancellation_Reason__c,
        Cancellation_Comments__c, Cancellation_Date__c
@@ -340,12 +374,14 @@ WHERE Id = '[Your Subscription Id]'
 
 **Terminal Status Validation:**
 Try to change status from Cancelled:
+
 1. Click **Edit**
 2. Change **Status** to "Active"
 3. Click **Save**
 4. **Expected:** ❌ Error: "Cannot change status from Cancelled. This is a terminal status."
 
 **Debug Log Checks:**
+
 - Look for: `SubscriptionValidator.validateStateTransitions`
 - Look for: `Status_Transition_Terminal` validation rule
 
@@ -356,9 +392,11 @@ Try to change status from Cancelled:
 **Purpose:** Test validation rule preventing activation without Price Plan
 
 **Setup:**
+
 - New Draft subscription
 
 **Steps:**
+
 1. Create new subscription with:
    - Account: Select any
    - **DO NOT select Price Plan**
@@ -369,10 +407,12 @@ Try to change status from Cancelled:
 5. Click **Save**
 
 **Expected Results:**
+
 - ❌ Save fails with error: "Price plan is required for active subscriptions"
 
 **Verification:**
 This validation is checked in both:
+
 - `SubscriptionValidator.validateBusinessRules` (Apex)
 - `Price_Plan_Required_Active.validationRule` (Validation Rule)
 
@@ -385,9 +425,11 @@ This validation is checked in both:
 **Purpose:** Test manual invoice creation with automatic calculations
 
 **Setup:**
+
 - Account exists
 
 **Steps:**
+
 1. Navigate to `Invoices Tab → New`
 2. Fill in fields:
    - **Account**: Select "Acme Corporation"
@@ -398,6 +440,7 @@ This validation is checked in both:
 3. Click **Save**
 
 **Expected Results:**
+
 - ✅ Record saves successfully
 - ✅ Status defaults to "Draft"
 - ✅ Invoice Date defaults to Today
@@ -407,6 +450,7 @@ This validation is checked in both:
 - ✅ Balance Due defaults to 0 (no line items yet)
 
 **Verification Queries:**
+
 ```sql
 SELECT Id, Name, Account__r.Name, Status__c, Invoice_Date__c,
        Due_Date__c, Payment_Terms__c, Tax_Rate__c, Balance_Due__c
@@ -417,6 +461,7 @@ LIMIT 1
 ```
 
 **Debug Log Checks:**
+
 - Look for: `InvoiceTriggerHandler.beforeInsert`
 - Look for: `InvoiceValidator.setDefaults`
 - Look for: `InvoiceValidator.calculateTaxAmounts`
@@ -429,15 +474,18 @@ LIMIT 1
 **Purpose:** Test invoice sending with validation
 
 **Setup:**
+
 - Draft invoice with Subtotal > 0 (has line items)
 
 **Steps:**
+
 1. Open Draft invoice
 2. Click **Edit**
 3. Change **Status** to "Sent"
 4. Click **Save**
 
 **Expected Results:**
+
 - ✅ Status updated to "Sent"
 - ✅ Follow-up task created: "Invoice Follow-up - [Account Name]"
 - ✅ Task Activity Date = Due Date - 5 days
@@ -445,11 +493,13 @@ LIMIT 1
 - ✅ Platform event published with Event Type "Sent"
 
 **Validation Test (Invoice with Zero Subtotal):**
+
 1. Create invoice with NO line items (Subtotal = 0)
 2. Try to change Status to "Sent"
 3. **Expected:** ❌ Error: "Cannot send invoice with zero or negative subtotal"
 
 **Verification Queries:**
+
 ```sql
 -- Check invoice
 SELECT Id, Name, Status__c, Subtotal__c, Due_Date__c
@@ -463,6 +513,7 @@ WHERE WhatId = '[Your Invoice Id]'
 ```
 
 **Debug Log Checks:**
+
 - Look for: `InvoiceTriggerHandler.afterUpdate`
 - Look for: `handleSentInvoices`
 - Look for: `InvoiceAutomationService.processStatusChanges`
@@ -474,9 +525,11 @@ WHERE WhatId = '[Your Invoice Id]'
 **Purpose:** Test payment receipt workflow
 
 **Setup:**
+
 - Invoice in "Sent" status
 
 **Steps:**
+
 1. Open Sent invoice
 2. Click **Edit**
 3. Change **Status** to "Paid"
@@ -484,6 +537,7 @@ WHERE WhatId = '[Your Invoice Id]'
 5. Click **Save**
 
 **Expected Results:**
+
 - ✅ Status updated to "Paid"
 - ✅ Balance Due = 0
 - ✅ Task created: "Payment Received - Thank [Account Name]"
@@ -493,6 +547,7 @@ WHERE WhatId = '[Your Invoice Id]'
 - ✅ **Invoice is now LOCKED** (cannot edit most fields)
 
 **Verification Queries:**
+
 ```sql
 -- Check invoice
 SELECT Id, Name, Status__c, Balance_Due__c
@@ -507,6 +562,7 @@ WHERE Id = '[Your Account Id]'
 ```
 
 **Locked Status Test:**
+
 1. Try to edit Paid invoice
 2. Change **Tax Rate** or **Due Date**
 3. **Expected:** ❌ Cannot modify locked fields on Paid/Voided invoice
@@ -518,15 +574,18 @@ WHERE Id = '[Your Account Id]'
 **Purpose:** Test invoice cancellation
 
 **Setup:**
+
 - Invoice in Sent or Overdue status
 
 **Steps:**
+
 1. Open invoice
 2. Click **Edit**
 3. Change **Status** to "Voided"
 4. Click **Save**
 
 **Expected Results:**
+
 - ✅ Status updated to "Voided"
 - ✅ Platform event published with Event Type "Voided"
 - ✅ **Invoice is now LOCKED** (terminal status)
@@ -534,6 +593,7 @@ WHERE Id = '[Your Account Id]'
 
 **Verification:**
 Try to send reminder via LWC or controller:
+
 ```javascript
 // Should throw error
 InvoiceController.sendInvoice(voidedInvoiceId);
@@ -549,9 +609,11 @@ InvoiceController.sendInvoice(voidedInvoiceId);
 **Purpose:** Test overdue status trigger
 
 **Setup:**
+
 - Invoice in "Sent" status with Due Date in the past
 
 **Steps:**
+
 1. Create invoice with:
    - Status: Sent
    - Invoice Date: 45 days ago
@@ -561,12 +623,14 @@ InvoiceController.sendInvoice(voidedInvoiceId);
 4. Try to change Status to "Overdue"
 
 **Expected Results:**
+
 - ✅ Status can be manually set to "Overdue" (for testing)
 - ✅ URGENT task created: "URGENT: Overdue Payment - [Account Name]"
 - ✅ Task Priority = "High"
 - ✅ Task Activity Date = Today
 
 **Validation Test:**
+
 1. Create invoice with Due Date = Tomorrow
 2. Try to set Status to "Overdue"
 3. **Expected:** ❌ Error: "Cannot mark as overdue if due date is not past"
@@ -580,18 +644,21 @@ InvoiceController.sendInvoice(voidedInvoiceId);
 ### Workflow 12: Subscription Validation Rules
 
 **Test 1: Account Required**
+
 ```
 Create subscription WITHOUT Account
 Expected: ❌ Error: "Account is required"
 ```
 
 **Test 2: Positive Quantity**
+
 ```
 Create subscription with Quantity = 0 or negative
 Expected: ❌ Error: "Quantity must be greater than zero"
 ```
 
 **Test 3: End Date After Start Date**
+
 ```
 Create subscription with:
 - Start Date: 2025-10-01
@@ -600,6 +667,7 @@ Expected: ❌ Error: "End date must be after start date"
 ```
 
 **Test 4: Trial Date After Start Date**
+
 ```
 Create Trial subscription with:
 - Start Date: 2025-10-01
@@ -612,6 +680,7 @@ Expected: ❌ Error via validation rule
 ### Workflow 13: Invoice Validation Rules
 
 **Test 1: Due Date After Invoice Date**
+
 ```
 Create invoice with:
 - Invoice Date: 2025-10-15
@@ -620,12 +689,14 @@ Expected: ❌ Error: "Due Date must be on or after Invoice Date"
 ```
 
 **Test 2: Tax Rate Range**
+
 ```
 Create invoice with Tax Rate = 150%
 Expected: ❌ Error: "Tax rate must be between 0 and 100"
 ```
 
 **Test 3: Account Required**
+
 ```
 Create invoice WITHOUT Account
 Expected: ❌ Error: "Account is required for invoices"
@@ -636,18 +707,21 @@ Expected: ❌ Error: "Account is required for invoices"
 ### Workflow 14: Line Item Validation Rules
 
 **Test 1: Positive Quantity**
+
 ```
 Create line item with Quantity = -5
 Expected: ❌ Error: "Quantity must be positive"
 ```
 
 **Test 2: Non-Negative Unit Price**
+
 ```
 Create line item with Unit Price = -50
 Expected: ❌ Error: "Unit price cannot be negative"
 ```
 
 **Test 3: Discount Range**
+
 ```
 Create line item with Discount Percent = 150%
 Expected: ❌ Error: "Discount must be between 0 and 100"
@@ -662,12 +736,14 @@ Expected: ❌ Error: "Discount must be between 0 and 100"
 **Purpose:** Test platform event publishing for subscription changes
 
 **Setup:**
+
 - Enable Debug Logs with FINEST level on Workflow category
 - Subscription in any status
 
 **Test Events:**
 
 **Event 1: Subscription Created**
+
 ```
 1. Create new subscription
 2. Save
@@ -680,6 +756,7 @@ Expected Platform Event:
 ```
 
 **Event 2: Status Changed**
+
 ```
 1. Change subscription from Trial → Active
 2. Save
@@ -690,6 +767,7 @@ Expected Platform Events (2 events):
 
 **Verification:**
 Check debug logs for:
+
 ```
 PlatformEventPublisher.publishSubscriptionEvents
 Publishing X platform events
@@ -698,6 +776,7 @@ EventBus.publish
 
 **Slack Notification Test:**
 For high-value events (Created, Activated, Cancelled):
+
 ```
 Debug Log should show:
 - PlatformEventSubscriber.processSubscriptionEvents
@@ -713,6 +792,7 @@ Debug Log should show:
 **Test Events:**
 
 **Event 1: Invoice Created (from Subscription Activation)**
+
 ```
 1. Activate subscription
 2. Invoice auto-generated
@@ -724,6 +804,7 @@ Expected Platform Event:
 ```
 
 **Event 2: Invoice Sent**
+
 ```
 1. Change invoice Status to "Sent"
 Expected Platform Event:
@@ -732,6 +813,7 @@ Expected Platform Event:
 ```
 
 **Event 3: Invoice Paid**
+
 ```
 1. Mark invoice as Paid
 Expected Platform Event:
@@ -741,6 +823,7 @@ Slack Notification: YES (always notified for payments)
 ```
 
 **Verification Queries (Debug Logs):**
+
 ```
 Search for: publishInvoiceStatusChanges
 Search for: EventBus.publish
@@ -756,9 +839,11 @@ Search for: SlackNotificationService.notifyInvoiceEvent
 **Purpose:** Test line item with automatic calculations
 
 **Setup:**
+
 - Invoice in Draft status exists
 
 **Steps:**
+
 1. Navigate to invoice detail page
 2. Click **New Invoice Line Item**
 3. Fill in:
@@ -773,6 +858,7 @@ Search for: SlackNotificationService.notifyInvoiceEvent
 4. Click **Save**
 
 **Expected Results:**
+
 - ✅ Line Amount auto-calculated = (10 × 50) - 10% = 450.00
 - ✅ Invoice Subtotal recalculated = Sum of all line amounts
 - ✅ Invoice Tax Amount recalculated = Subtotal × Tax Rate
@@ -780,6 +866,7 @@ Search for: SlackNotificationService.notifyInvoiceEvent
 - ✅ Invoice Balance Due updated
 
 **Verification Queries:**
+
 ```sql
 -- Check line item
 SELECT Id, Quantity__c, Unit_Price__c, Discount_Percent__c, Line_Amount__c
@@ -793,7 +880,8 @@ WHERE Id = '[Invoice Id]'
 ```
 
 **Formula Field Check:**
-Line_Amount__c formula:
+Line_Amount\_\_c formula:
+
 ```
 (Quantity__c * Unit_Price__c) * (1 - Discount_Percent__c / 100)
 ```
@@ -805,9 +893,11 @@ Line_Amount__c formula:
 **Purpose:** Test automatic line item creation when subscription activates
 
 **Setup:**
+
 - Subscription with Price Plan
 
 **Steps:**
+
 1. Create subscription with:
    - Price Plan: Professional Plan (Unit Price = 199, Billing Frequency = Quarterly)
    - Quantity: 3
@@ -816,9 +906,10 @@ Line_Amount__c formula:
 3. Save
 
 **Expected Results:**
+
 - ✅ Invoice created automatically
 - ✅ **Line item auto-created with:**
-  - Subscription__c = [Subscription ID]
+  - Subscription\_\_c = [Subscription ID]
   - Quantity = 3 (from subscription)
   - Unit Price = 199.00 (from price plan)
   - Period Start = Today
@@ -827,6 +918,7 @@ Line_Amount__c formula:
   - Discount = 0%
 
 **Verification:**
+
 ```sql
 SELECT Id, Invoice__c, Subscription__c, Quantity__c, Unit_Price__c,
        Period_Start__c, Period_End__c, Line_Amount__c
@@ -851,22 +943,27 @@ WHERE Subscription__c = '[Subscription Id]'
 **Purpose:** Test reminder tracking for overdue invoices
 
 **Setup:**
+
 - Invoice in "Overdue" status
 
 **Steps:**
+
 1. Navigate to invoice detail page
 2. Click custom button/action: **Send Reminder** (or call via controller)
 3. Or use Developer Console:
+
 ```apex
 InvoiceController.sendInvoice('[Invoice Id]');
 ```
 
 **Expected Results:**
-- ✅ Reminders_Sent__c incremented by 1
-- ✅ Last_Reminder_Date__c updated to now
+
+- ✅ Reminders_Sent\_\_c incremented by 1
+- ✅ Last_Reminder_Date\_\_c updated to now
 - ✅ Success message displayed
 
 **Verification Queries:**
+
 ```sql
 SELECT Id, Name, Status__c, Reminders_Sent__c, Last_Reminder_Date__c
 FROM Invoice__c
@@ -875,6 +972,7 @@ WHERE Id = '[Invoice Id]'
 
 **Validation Tests:**
 Try to send reminder for Paid invoice:
+
 ```apex
 // Should throw error
 InvoiceController.sendInvoice('[Paid Invoice Id]');
@@ -882,6 +980,7 @@ InvoiceController.sendInvoice('[Paid Invoice Id]');
 ```
 
 Try to send reminder for Voided invoice:
+
 ```apex
 // Should throw error
 InvoiceController.sendInvoice('[Voided Invoice Id]');
@@ -895,9 +994,11 @@ InvoiceController.sendInvoice('[Voided Invoice Id]');
 **Purpose:** Test overdue invoice dashboard component
 
 **Setup:**
+
 - At least 3 invoices in Overdue status
 
 **Steps:**
+
 1. Add LWC component to Home page or Account page:
    - Component Name: `invoiceOverdueDashboard`
 2. Component displays list of overdue invoices
@@ -911,6 +1012,7 @@ InvoiceController.sendInvoice('[Voided Invoice Id]');
    - **Send Reminder** button
 
 **Expected Results:**
+
 - ✅ List sorted by Due Date (oldest first)
 - ✅ Limit 50 records
 - ✅ Click "Send Reminder" button increments counter
@@ -918,6 +1020,7 @@ InvoiceController.sendInvoice('[Voided Invoice Id]');
 - ✅ List refreshes automatically
 
 **Controller Method:**
+
 ```apex
 @AuraEnabled(cacheable=true)
 public static List<Invoice__c> getOverdueInvoices()
@@ -932,10 +1035,12 @@ public static List<Invoice__c> getOverdueInvoices()
 **Purpose:** Test Security.stripInaccessible in controllers
 
 **Setup:**
+
 - Create test user with custom profile
-- Remove FLS on Invoice__c.Tax_Rate__c (read and edit)
+- Remove FLS on Invoice**c.Tax_Rate**c (read and edit)
 
 **Test 1: Read Permission**
+
 ```
 1. Login as restricted user
 2. Query invoice via controller:
@@ -944,6 +1049,7 @@ public static List<Invoice__c> getOverdueInvoices()
 ```
 
 **Test 2: Create Permission**
+
 ```
 1. Login as restricted user
 2. Try to create invoice with Tax_Rate__c = 25
@@ -951,6 +1057,7 @@ public static List<Invoice__c> getOverdueInvoices()
 ```
 
 **Test 3: Update Permission**
+
 ```
 1. Login as restricted user
 2. Try to update existing invoice and change Tax_Rate__c
@@ -959,6 +1066,7 @@ public static List<Invoice__c> getOverdueInvoices()
 
 **Verification:**
 Debug logs show:
+
 ```
 Security.stripInaccessible(AccessType.READABLE)
 Removed fields: [Tax_Rate__c]
@@ -971,20 +1079,24 @@ Removed fields: [Tax_Rate__c]
 **Purpose:** Test custom permission for cancelling subscriptions
 
 **Setup:**
+
 - User WITHOUT "Cancel Subscriptions" custom permission
 
 **Steps:**
+
 1. Login as restricted user
 2. Open Active subscription
 3. Try to change Status to "Cancelled"
 4. Save
 
 **Expected Results:**
+
 - ❌ Error: "You do not have permission to cancel this subscription"
 - Validation checked in `SubscriptionValidator.validateCancellationPermissions`
 - Uses `SecurityUtils.canCancelSubscription()`
 
 **Grant Permission Test:**
+
 1. Assign "Cancel Subscriptions" permission to user
 2. Try again
 3. **Expected:** ✅ Cancellation succeeds
@@ -996,18 +1108,22 @@ Removed fields: [Tax_Rate__c]
 **Purpose:** Test deletion restrictions on locked invoices
 
 **Setup:**
+
 - Invoice in Paid status
 
 **Steps:**
+
 1. Open Paid invoice
 2. Click **Delete**
 3. Confirm deletion
 
 **Expected Results:**
+
 - ❌ Error: "Cannot delete invoices with status: Paid"
 - Validation in `InvoiceValidator.validateInvoiceDeletion`
 
 **Allowed Deletion Test:**
+
 ```
 Draft invoice → Can delete
 Sent invoice → Can delete
@@ -1023,6 +1139,7 @@ Voided invoice → CANNOT delete
 ### How to Read Debug Logs
 
 **Enable Logging:**
+
 ```
 Setup → Debug Logs → New
 User: [Your User]
@@ -1033,36 +1150,42 @@ Expiration: 1 hour
 **Key Log Patterns to Search:**
 
 **1. Trigger Execution:**
+
 ```
 Search: "SubscriptionTriggerHandler"
 Expected: beforeInsert, afterInsert, beforeUpdate, afterUpdate
 ```
 
 **2. Validation Errors:**
+
 ```
 Search: "FIELD_CUSTOM_VALIDATION_EXCEPTION"
 Shows: Which validation rule failed and error message
 ```
 
 **3. Platform Events:**
+
 ```
 Search: "EventBus.publish"
 Shows: Number of events published and any failures
 ```
 
 **4. Automation Service:**
+
 ```
 Search: "SubscriptionAutomationService"
 Shows: processNewSubscriptions, generateInvoicesForActiveSubscriptions
 ```
 
 **5. SOQL Queries:**
+
 ```
 Search: "SOQL_EXECUTE_BEGIN"
 Shows: All queries executed and number of rows returned
 ```
 
 **6. DML Operations:**
+
 ```
 Search: "DML_BEGIN"
 Shows: INSERT, UPDATE, DELETE operations
@@ -1073,6 +1196,7 @@ Shows: INSERT, UPDATE, DELETE operations
 ### Common Issues & Solutions
 
 **Issue 1: Invoice Not Generated on Activation**
+
 ```
 Symptoms: Subscription activated but no invoice created
 Debug Log Check:
@@ -1083,6 +1207,7 @@ Solution: Ensure Price Plan is set before activation
 ```
 
 **Issue 2: Validation Rule Blocks Save**
+
 ```
 Symptoms: Cannot save record with generic error
 Debug Log Check:
@@ -1092,6 +1217,7 @@ Solution: Fix the field value causing validation failure
 ```
 
 **Issue 3: Platform Event Not Published**
+
 ```
 Symptoms: No Slack notification received
 Debug Log Check:
@@ -1102,6 +1228,7 @@ Solution: Check Integration_Setting__mdt configuration
 ```
 
 **Issue 4: Tasks Not Created**
+
 ```
 Symptoms: Subscription activated but no tasks created
 Debug Log Check:
@@ -1115,6 +1242,7 @@ Solution: Verify user has Create permission on Task object
 ### Query Templates for Verification
 
 **Check Subscription with Related Data:**
+
 ```sql
 SELECT Id, Name, Status__c, Account__r.Name,
        Price_Plan__r.Name, Price_Plan__r.Unit_Price__c,
@@ -1125,6 +1253,7 @@ WHERE Id = '[Subscription Id]'
 ```
 
 **Check Invoice with Line Items:**
+
 ```sql
 SELECT Id, Name, Status__c, Account__r.Name,
        Subtotal__c, Tax_Amount__c, Total_Amount__c, Balance_Due__c,
@@ -1134,6 +1263,7 @@ WHERE Id = '[Invoice Id]'
 ```
 
 **Check Account Metrics:**
+
 ```sql
 SELECT Id, Name,
        Subscription_Status__c, Health_Score__c,
@@ -1144,6 +1274,7 @@ WHERE Id = '[Account Id]'
 ```
 
 **Find All Overdue Invoices:**
+
 ```sql
 SELECT Id, Name, Account__r.Name, Due_Date__c,
        Total_Amount__c, Balance_Due__c, Reminders_Sent__c
@@ -1153,6 +1284,7 @@ ORDER BY Due_Date__c ASC
 ```
 
 **Find Expiring Trial Subscriptions:**
+
 ```sql
 SELECT Id, Name, Account__r.Name, Trial_End_Date__c, Status__c
 FROM Subscription__c
@@ -1167,6 +1299,7 @@ ORDER BY Trial_End_Date__c ASC
 ## Testing Checklist Summary
 
 ### Subscription Workflows
+
 - [ ] Create Draft subscription with defaults
 - [ ] Transition Draft → Trial (auto-populate trial date)
 - [ ] Transition Trial → Active (generate invoice)
@@ -1178,6 +1311,7 @@ ORDER BY Trial_End_Date__c ASC
 - [ ] Test validation: End date after start date
 
 ### Invoice Workflows
+
 - [ ] Create Draft invoice with auto-calculations
 - [ ] Transition Draft → Sent (validation for subtotal > 0)
 - [ ] Mark invoice as Paid (lock fields)
@@ -1186,6 +1320,7 @@ ORDER BY Trial_End_Date__c ASC
 - [ ] Test validation: Due date after invoice date
 
 ### Automation
+
 - [ ] Onboarding tasks created on Trial status
 - [ ] Status-specific tasks created on status changes
 - [ ] Invoice auto-generated on subscription activation
@@ -1194,6 +1329,7 @@ ORDER BY Trial_End_Date__c ASC
 - [ ] Account payment metrics updated (Total Billed, Invoice Count)
 
 ### Platform Events
+
 - [ ] Subscription Created event published
 - [ ] Subscription StatusChanged event published
 - [ ] Invoice Created event published
@@ -1202,6 +1338,7 @@ ORDER BY Trial_End_Date__c ASC
 - [ ] Slack notifications sent for high-value events
 
 ### Line Items & Calculations
+
 - [ ] Manual line item with discount calculation
 - [ ] Line item from subscription activation
 - [ ] Invoice totals recalculate on line item changes
@@ -1209,12 +1346,14 @@ ORDER BY Trial_End_Date__c ASC
 - [ ] Tax amounts calculated from account billing country
 
 ### Security
+
 - [ ] FLS enforced via Security.stripInaccessible
 - [ ] Cancellation permission checked
 - [ ] Deletion restrictions on locked invoices
 - [ ] WITH SECURITY_ENFORCED on SOQL queries
 
 ### Validation Rules
+
 - [ ] All Subscription validation rules tested
 - [ ] All Invoice validation rules tested
 - [ ] All Line Item validation rules tested
@@ -1225,6 +1364,7 @@ ORDER BY Trial_End_Date__c ASC
 ## Appendix: Key File Locations
 
 **Apex Classes:**
+
 - [InvoiceController.cls](../force-app/main/default/classes/InvoiceController.cls)
 - [SubscriptionController.cls](../force-app/main/default/classes/SubscriptionController.cls)
 - [InvoiceTriggerHandler.cls](../force-app/main/default/classes/InvoiceTriggerHandler.cls)
@@ -1233,10 +1373,12 @@ ORDER BY Trial_End_Date__c ASC
 - [SubscriptionAutomationService.cls](../force-app/main/default/classes/SubscriptionAutomationService.cls)
 
 **Triggers:**
+
 - [InvoiceTrigger.trigger](../force-app/main/default/triggers/InvoiceTrigger.trigger)
 - [SubscriptionTrigger.trigger](../force-app/main/default/triggers/SubscriptionTrigger.trigger)
 
 **LWC Components:**
+
 - [invoiceOverdueDashboard](../force-app/main/default/lwc/invoiceOverdueDashboard/)
 - [subscriptionExpiringWidget](../force-app/main/default/lwc/subscriptionExpiringWidget/)
 

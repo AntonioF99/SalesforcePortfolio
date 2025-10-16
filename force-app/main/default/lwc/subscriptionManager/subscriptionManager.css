@@ -1,86 +1,86 @@
 .subscription-manager {
-    min-height: 400px;
+  min-height: 400px;
 }
 
 .subscription-manager .slds-form-element__label {
-    font-weight: 600;
-    color: #3e3e3c;
+  font-weight: 600;
+  color: #3e3e3c;
 }
 
 .subscription-manager .slds-required {
-    color: #ee5e52;
+  color: #ee5e52;
 }
 
 .subscription-manager .slds-form-element__help {
-    font-size: 0.75rem;
-    margin-top: 0.25rem;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 .subscription-manager .slds-card__header {
-    background-color: #f3f3f3;
-    border-bottom: 1px solid #dddbda;
+  background-color: #f3f3f3;
+  border-bottom: 1px solid #dddbda;
 }
 
 .subscription-manager .slds-card__footer {
-    background-color: #fafaf9;
-    border-top: 1px solid #dddbda;
+  background-color: #fafaf9;
+  border-top: 1px solid #dddbda;
 }
 
 .subscription-manager .slds-spinner_container {
-    position: absolute;
-    z-index: 9999;
+  position: absolute;
+  z-index: 9999;
 }
 
 /* Status Badge Variants */
 .subscription-manager lightning-badge[data-variant="success"] {
-    --sds-c-badge-color-background: #4bca81;
+  --sds-c-badge-color-background: #4bca81;
 }
 
 .subscription-manager lightning-badge[data-variant="warning"] {
-    --sds-c-badge-color-background: #ffb75d;
+  --sds-c-badge-color-background: #ffb75d;
 }
 
 .subscription-manager lightning-badge[data-variant="error"] {
-    --sds-c-badge-color-background: #ea001e;
+  --sds-c-badge-color-background: #ea001e;
 }
 
 /* Form Layout Improvements */
 .subscription-manager .slds-form-element {
-    margin-bottom: 1rem;
+  margin-bottom: 1rem;
 }
 
 .subscription-manager .slds-form-element__control {
-    position: relative;
+  position: relative;
 }
 
 /* Error State Styling */
 .subscription-manager .slds-has-error .slds-form-element__control {
-    border-color: #ea001e;
+  border-color: #ea001e;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .subscription-manager lightning-layout-item[size="6"] {
-        width: 100%;
-    }
-    
-    .subscription-manager .slds-card__header .slds-no-flex {
-        margin-top: 1rem;
-    }
+  .subscription-manager lightning-layout-item[size="6"] {
+    width: 100%;
+  }
+
+  .subscription-manager .slds-card__header .slds-no-flex {
+    margin-top: 1rem;
+  }
 }
 
 /* Conditional Field Animations */
 .subscription-manager .conditional-field {
-    transition: all 0.3s ease-in-out;
+  transition: all 0.3s ease-in-out;
 }
 
 .subscription-manager .conditional-field.show {
-    opacity: 1;
-    max-height: 200px;
+  opacity: 1;
+  max-height: 200px;
 }
 
 .subscription-manager .conditional-field.hide {
-    opacity: 0;
-    max-height: 0;
-    overflow: hidden;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
 }

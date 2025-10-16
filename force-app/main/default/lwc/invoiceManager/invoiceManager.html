@@ -1,186 +1,187 @@
 <template>
-    <!-- Spinner -->
-    <template if:true={isLoading}>
-        <div class="slds-spinner_container">
-            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+  <!-- Spinner -->
+  <template if:true={isLoading}>
+    <div class="slds-spinner_container">
+      <lightning-spinner alternative-text="Loading"></lightning-spinner>
+    </div>
+  </template>
+
+  <!-- Card Container - MOSTRA SOLO SE CI SONO DATI -->
+  <template if:true={hasData}>
+    <lightning-card title="Invoice" icon-name="standard:invoice">
+      <!-- View Mode -->
+      <template if:true={isViewMode}>
+        <div class="slds-p-horizontal_medium">
+          <!-- Basic Info -->
+          <div class="slds-grid slds-wrap slds-gutters">
+            <div class="slds-col slds-size_1-of-2">
+              <p><strong>Invoice Number:</strong> {invoice.Name}</p>
+              <p><strong>Account:</strong> {accountName}</p>
+              <p>
+                <strong>Invoice Date:</strong>
+                <lightning-formatted-date-time
+                  value={invoice.Invoice_Date__c}
+                ></lightning-formatted-date-time>
+              </p>
+              <p>
+                <strong>Due Date:</strong>
+                <lightning-formatted-date-time
+                  value={invoice.Due_Date__c}
+                ></lightning-formatted-date-time>
+              </p>
+            </div>
+            <div class="slds-col slds-size_1-of-2">
+              <p>
+                <strong>Status:</strong>
+                <lightning-badge
+                  label={invoice.Status__c}
+                  variant={statusVariant}
+                ></lightning-badge>
+              </p>
+              <p><strong>Payment Terms:</strong> {paymentTermsLabel}</p>
+              <p>
+                <strong>Total Amount:</strong>
+                <lightning-formatted-number
+                  value={invoice.Total_Amount__c}
+                  format-style="currency"
+                  currency-code="EUR"
+                >
+                </lightning-formatted-number>
+              </p>
+              <p>
+                <strong>Balance Due:</strong>
+                <lightning-formatted-number
+                  value={invoice.Balance_Due__c}
+                  format-style="currency"
+                  currency-code="EUR"
+                >
+                </lightning-formatted-number>
+              </p>
+            </div>
+          </div>
         </div>
+
+        <!-- View Mode Actions -->
+        <div slot="actions">
+          <template if:true={canEdit}>
+            <lightning-button
+              label="Edit"
+              onclick={handleEdit}
+            ></lightning-button>
+          </template>
+        </div>
+      </template>
+
+      <!-- Edit Mode -->
+      <template if:false={isViewMode}>
+        <div class="slds-p-horizontal_medium">
+          <lightning-record-edit-form
+            object-api-name="Invoice__c"
+            record-id={recordId}
+            onsuccess={handleSuccess}
+            onerror={handleError}
+            onsubmit={handleSubmit}
+          >
+            <!-- Account Field -->
+            <lightning-input-field field-name="Account__c" required>
+            </lightning-input-field>
+
+            <!-- Invoice Date -->
+            <lightning-input-field field-name="Invoice_Date__c">
+            </lightning-input-field>
+
+            <!-- Due Date -->
+            <lightning-input-field field-name="Due_Date__c">
+            </lightning-input-field>
+
+            <!-- Payment Terms -->
+            <lightning-input-field field-name="Payment_Terms__c">
+            </lightning-input-field>
+
+            <!-- Status -->
+            <lightning-input-field field-name="Status__c">
+            </lightning-input-field>
+
+            <!-- Tax Rate -->
+            <lightning-input-field field-name="Tax_Rate__c">
+            </lightning-input-field>
+
+            <!-- Form Actions -->
+            <div class="slds-m-top_medium">
+              <lightning-button
+                label="Cancel"
+                onclick={handleCancel}
+                type="button"
+              >
+              </lightning-button>
+              <lightning-button
+                label="Save"
+                variant="brand"
+                type="submit"
+                class="slds-m-left_x-small"
+              >
+              </lightning-button>
+            </div>
+          </lightning-record-edit-form>
+        </div>
+      </template>
+    </lightning-card>
+  </template>
+
+  <!-- Create Mode - Quando non ci sono dati ma stiamo creando -->
+  <template if:false={hasData}>
+    <template if:true={isEditing}>
+      <lightning-card title="New Invoice" icon-name="standard:invoice">
+        <div class="slds-p-horizontal_medium">
+          <lightning-record-edit-form
+            object-api-name="Invoice__c"
+            onsuccess={handleSuccess}
+            onerror={handleError}
+            onsubmit={handleSubmit}
+          >
+            <!-- Account Field -->
+            <lightning-input-field
+              field-name="Account__c"
+              value={accountId}
+              required
+            >
+            </lightning-input-field>
+
+            <!-- Invoice Date -->
+            <lightning-input-field field-name="Invoice_Date__c">
+            </lightning-input-field>
+
+            <!-- Due Date -->
+            <lightning-input-field field-name="Due_Date__c">
+            </lightning-input-field>
+
+            <!-- Payment Terms -->
+            <lightning-input-field field-name="Payment_Terms__c">
+            </lightning-input-field>
+
+            <!-- Tax Rate -->
+            <lightning-input-field field-name="Tax_Rate__c">
+            </lightning-input-field>
+
+            <!-- Form Actions -->
+            <div class="slds-m-top_medium">
+              <lightning-button
+                label="Cancel"
+                onclick={handleCancel}
+                type="button"
+              >
+              </lightning-button>
+              <lightning-button
+                label="Create Invoice"
+                variant="brand"
+                type="submit"
+                class="slds-m-left_x-small"
+              >
+              </lightning-button>
+            </div>
+          </lightning-record-edit-form>
+        </div>
+      </lightning-card>
     </template>
-
-    <!-- Card Container - MOSTRA SOLO SE CI SONO DATI -->
-    <template if:true={hasData}>
-        <lightning-card title="Invoice" icon-name="standard:invoice">
-            
-            <!-- View Mode -->
-            <template if:true={isViewMode}>
-                <div class="slds-p-horizontal_medium">
-                    
-                    <!-- Basic Info -->
-                    <div class="slds-grid slds-wrap slds-gutters">
-                        <div class="slds-col slds-size_1-of-2">
-                            <p><strong>Invoice Number:</strong> {invoice.Name}</p>
-                            <p><strong>Account:</strong> {accountName}</p>
-                            <p><strong>Invoice Date:</strong> 
-                                <lightning-formatted-date-time value={invoice.Invoice_Date__c}></lightning-formatted-date-time>
-                            </p>
-                            <p><strong>Due Date:</strong> 
-                                <lightning-formatted-date-time value={invoice.Due_Date__c}></lightning-formatted-date-time>
-                            </p>
-                        </div>
-                        <div class="slds-col slds-size_1-of-2">
-                            <p><strong>Status:</strong> 
-                                <lightning-badge label={invoice.Status__c} variant={statusVariant}></lightning-badge>
-                            </p>
-                            <p><strong>Payment Terms:</strong> {paymentTermsLabel}</p>
-                            <p><strong>Total Amount:</strong> 
-                                <lightning-formatted-number 
-                                    value={invoice.Total_Amount__c} 
-                                    format-style="currency" 
-                                    currency-code="EUR">
-                                </lightning-formatted-number>
-                            </p>
-                            <p><strong>Balance Due:</strong> 
-                                <lightning-formatted-number 
-                                    value={invoice.Balance_Due__c} 
-                                    format-style="currency" 
-                                    currency-code="EUR">
-                                </lightning-formatted-number>
-                            </p>
-                        </div>
-                    </div>
-                    
-                </div>
-                
-                <!-- View Mode Actions -->
-                <div slot="actions">
-                    <template if:true={canEdit}>
-                        <lightning-button label="Edit" onclick={handleEdit}></lightning-button>
-                    </template>
-                </div>
-            </template>
-
-            <!-- Edit Mode -->
-            <template if:false={isViewMode}>
-                <div class="slds-p-horizontal_medium">
-                    
-                    <lightning-record-edit-form 
-                        object-api-name="Invoice__c" 
-                        record-id={recordId}
-                        onsuccess={handleSuccess}
-                        onerror={handleError}
-                        onsubmit={handleSubmit}>
-                        
-                        <!-- Account Field -->
-                        <lightning-input-field 
-                            field-name="Account__c" 
-                            required>
-                        </lightning-input-field>
-                        
-                        <!-- Invoice Date -->
-                        <lightning-input-field 
-                            field-name="Invoice_Date__c">
-                        </lightning-input-field>
-                        
-                        <!-- Due Date -->
-                        <lightning-input-field 
-                            field-name="Due_Date__c">
-                        </lightning-input-field>
-                        
-                        <!-- Payment Terms -->
-                        <lightning-input-field 
-                            field-name="Payment_Terms__c">
-                        </lightning-input-field>
-                        
-                        <!-- Status -->
-                        <lightning-input-field 
-                            field-name="Status__c">
-                        </lightning-input-field>
-                        
-                        <!-- Tax Rate -->
-                        <lightning-input-field 
-                            field-name="Tax_Rate__c">
-                        </lightning-input-field>
-                        
-                        <!-- Form Actions -->
-                        <div class="slds-m-top_medium">
-                            <lightning-button 
-                                label="Cancel" 
-                                onclick={handleCancel}
-                                type="button">
-                            </lightning-button>
-                            <lightning-button 
-                                label="Save" 
-                                variant="brand"
-                                type="submit"
-                                class="slds-m-left_x-small">
-                            </lightning-button>
-                        </div>
-                        
-                    </lightning-record-edit-form>
-                    
-                </div>
-            </template>
-
-        </lightning-card>
-    </template>
-
-    <!-- Create Mode - Quando non ci sono dati ma stiamo creando -->
-    <template if:false={hasData}>
-        <template if:true={isEditing}>
-            <lightning-card title="New Invoice" icon-name="standard:invoice">
-                <div class="slds-p-horizontal_medium">
-                    
-                    <lightning-record-edit-form 
-                        object-api-name="Invoice__c"
-                        onsuccess={handleSuccess}
-                        onerror={handleError}
-                        onsubmit={handleSubmit}>
-                        
-                        <!-- Account Field -->
-                        <lightning-input-field 
-                            field-name="Account__c"
-                            value={accountId}
-                            required>
-                        </lightning-input-field>
-                        
-                        <!-- Invoice Date -->
-                        <lightning-input-field 
-                            field-name="Invoice_Date__c">
-                        </lightning-input-field>
-                        
-                        <!-- Due Date -->
-                        <lightning-input-field 
-                            field-name="Due_Date__c">
-                        </lightning-input-field>
-                        
-                        <!-- Payment Terms -->
-                        <lightning-input-field 
-                            field-name="Payment_Terms__c">
-                        </lightning-input-field>
-                        
-                        <!-- Tax Rate -->
-                        <lightning-input-field 
-                            field-name="Tax_Rate__c">
-                        </lightning-input-field>
-                        
-                        <!-- Form Actions -->
-                        <div class="slds-m-top_medium">
-                            <lightning-button 
-                                label="Cancel" 
-                                onclick={handleCancel}
-                                type="button">
-                            </lightning-button>
-                            <lightning-button 
-                                label="Create Invoice" 
-                                variant="brand"
-                                type="submit"
-                                class="slds-m-left_x-small">
-                            </lightning-button>
-                        </div>
-                        
-                    </lightning-record-edit-form>
-                    
-                </div>
-            </lightning-card>
-        </template>
-    </template>
+  </template>
 </template>

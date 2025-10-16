@@ -1,0 +1,26 @@
+# CODEOWNERS
+# This file defines code ownership for the repository.
+# Lines starting with '#' are comments.
+# Each line is a file pattern followed by one or more owners.
+
+# Default owner for everything in the repo
+* @AntonioF99
+
+# Salesforce metadata and Apex code
+/force-app/ @AntonioF99
+
+# CI/CD workflows
+/.github/ @AntonioF99
+
+# Documentation
+/docs/ @AntonioF99
+*.md @AntonioF99
+
+# Configuration files
+/config/ @AntonioF99
+*.json @AntonioF99
+*.yml @AntonioF99
+*.yaml @AntonioF99
+
+# Scripts
+/scripts/ @AntonioF99

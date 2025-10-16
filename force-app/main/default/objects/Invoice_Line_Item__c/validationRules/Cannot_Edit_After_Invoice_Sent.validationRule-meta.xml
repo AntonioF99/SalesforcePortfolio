@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Cannot_Edit_After_Invoice_Sent</fullName>
     <active>true</active>
-    <description>Prevents editing line items after invoice has been sent to customer</description>
+    <description
+  >Prevents editing line items after invoice has been sent to customer</description>
     <errorConditionFormula>AND(
     NOT(ISNEW()),
     OR(
@@ -12,5 +13,6 @@
         ISPICKVAL(Invoice__r.Status__c, &apos;Voided&apos;)
     )
 )</errorConditionFormula>
-    <errorMessage>Cannot modify line items after invoice has been sent. Create a new invoice or void this one.</errorMessage>
+    <errorMessage
+  >Cannot modify line items after invoice has been sent. Create a new invoice or void this one.</errorMessage>
 </ValidationRule>
