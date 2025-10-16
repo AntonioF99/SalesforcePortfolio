@@ -182,42 +182,4 @@ public class Constants {
     public static Boolean isInvoiceLocked(String status) {
         return INVOICE_LOCKED_STATUSES.contains(status);
     }
-    
-    /**
-     * @description Check if an invoice status is billable
-     * @param status The status to check  
-     * @return true if status is billable
-     */
-    public static Boolean isInvoiceBillable(String status) {
-        return INVOICE_BILLABLE_STATUSES.contains(status);
-    }
-    
-    /**
-     * @description Get all valid subscription statuses
-     * @return Set of all valid subscription statuses
-     */
-    public static Set<String> getAllSubscriptionStatuses() {
-        return new Set<String>{
-            SUBSCRIPTION_STATUS_DRAFT,
-            SUBSCRIPTION_STATUS_TRIAL,
-            SUBSCRIPTION_STATUS_ACTIVE,
-            SUBSCRIPTION_STATUS_SUSPENDED,
-            SUBSCRIPTION_STATUS_CANCELLED
-        };
-    }
-    
-    /**
-     * @description Get all valid invoice statuses
-     * @return Set of all valid invoice statuses
-     */
-    public static Set<String> getAllInvoiceStatuses() {
-        return new Set<String>{
-            INVOICE_STATUS_DRAFT,
-            INVOICE_STATUS_SENT,
-            INVOICE_STATUS_PAID,
-            INVOICE_STATUS_PARTIALLY_PAID,
-            INVOICE_STATUS_OVERDUE,
-            INVOICE_STATUS_VOIDED
-        };
-    }
 }

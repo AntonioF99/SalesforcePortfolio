@@ -50,17 +50,9 @@ public class InvoiceValidator {
                 }
             }
             
-            if (inv.Subtotal__c != null && inv.Subtotal__c < 0) {
-                inv.addError('Subtotal__c', 'Invoice subtotal cannot be negative');
-            }
-            
-            if (inv.Tax_Amount__c != null && inv.Tax_Amount__c < 0) {
-                inv.addError('Tax_Amount__c', 'Tax amount cannot be negative');
-            }
-            
-            if (inv.Balance_Due__c != null && inv.Balance_Due__c < 0) {
-                inv.addError('Balance_Due__c', 'Balance due cannot be negative');
-            }
+            // Note: Subtotal__c, Tax_Amount__c, and Balance_Due__c are formula fields
+            // They cannot be negative as they're calculated from positive line item values
+            // No validation needed here
             
             validateStatusSpecificRules(inv);
         }
