@@ -1,5 +1,10 @@
 # Salesforce Portfolio
 
+[![Salesforce API](https://img.shields.io/badge/Salesforce%20API-v64.0-blue.svg)](https://developer.salesforce.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Code Coverage](https://img.shields.io/badge/Coverage-71%25-yellow.svg)](ANALYSIS_REPORT.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 Enterprise-level Salesforce development portfolio showcasing advanced Apex patterns, Lightning Web Components, and modern integration architectures.
 
 ## 🎯 Overview
@@ -177,10 +182,14 @@ This project uses Husky for pre-commit hooks that automatically:
 
 ## 📚 Documentation
 
+- [Architecture Overview](docs/ARCHITECTURE.md) - System design and patterns
 - [Manual Testing Guide](docs/MANUAL_TESTING_GUIDE.md) - Step-by-step testing procedures
+- [Manual UI Testing Guide](docs/MANUAL_UI_TESTING_GUIDE.md) - UI component testing
 - [Security Documentation](docs/SECURITY.md) - Security implementation details
 - [Workflow Analysis](docs/WORKFLOW_ANALYSIS.md) - Business process flows
 - [Slack Setup](SLACK_SETUP.md) - External integration configuration
+- [Contributing Guide](CONTRIBUTING.md) - How to contribute or provide feedback
+- [Changelog](CHANGELOG.md) - Project version history
 
 ## 🔍 Code Analysis
 
