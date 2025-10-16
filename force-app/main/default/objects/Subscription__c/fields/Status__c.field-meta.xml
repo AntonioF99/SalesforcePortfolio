@@ -1,8 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Status__c</fullName>
-    <description>Current status of the subscription. Drives business processes and field requirements.</description>
-    <inlineHelpText>Status transitions: Draft→Trial/Active/Cancelled, Trial→Active/Cancelled, Active→Suspended/Cancelled, Suspended→Active/Cancelled. Price Plan required for Active status.</inlineHelpText>
+    <description
+  >Current status of the subscription. Drives business processes and field requirements.</description>
+    <inlineHelpText
+  >Status transitions: Draft→Trial/Active/Cancelled, Trial→Active/Cancelled, Active→Suspended/Cancelled, Suspended→Active/Cancelled. Price Plan required for Active status.</inlineHelpText>
     <label>Status</label>
     <required>true</required>
     <trackHistory>true</trackHistory>

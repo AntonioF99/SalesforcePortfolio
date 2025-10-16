@@ -1,10 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <EmailTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
     <available>true</available>
     <encodingKey>UTF-8</encodingKey>
     <name>Subscription Welcome</name>
     <style>none</style>
-    <subject>Welcome to your new subscription - {!Subscription__c.Account__r.Name}</subject>
+    <subject
+  >Welcome to your new subscription - {!Subscription__c.Account__r.Name}</subject>
     <textOnly>Dear {!Contact.FirstName},
 
 Welcome to your new subscription! We're excited to have you as a customer.

@@ -1,8 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Cancellation_Date__c</fullName>
-    <description>Date when the subscription was cancelled. Auto-populated when status changes to Cancelled.</description>
-    <inlineHelpText>This field is automatically populated when the subscription status is set to Cancelled.</inlineHelpText>
+    <description
+  >Date when the subscription was cancelled. Auto-populated when status changes to Cancelled.</description>
+    <inlineHelpText
+  >This field is automatically populated when the subscription status is set to Cancelled.</inlineHelpText>
     <label>Cancellation Date</label>
     <required>false</required>
     <trackHistory>true</trackHistory>

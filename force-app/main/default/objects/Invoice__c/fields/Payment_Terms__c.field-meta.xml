@@ -1,8 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Payment_Terms__c</fullName>
-    <description>Payment terms that determine when payment is due. Automatically calculates due date based on invoice date.</description>
-    <inlineHelpText>Select payment terms. Due date will be calculated automatically: Net 15 (15 days), Net 30 (30 days), Net 45 (45 days), or Due on Receipt (same day).</inlineHelpText>
+    <description
+  >Payment terms that determine when payment is due. Automatically calculates due date based on invoice date.</description>
+    <inlineHelpText
+  >Select payment terms. Due date will be calculated automatically: Net 15 (15 days), Net 30 (30 days), Net 45 (45 days), or Due on Receipt (same day).</inlineHelpText>
     <label>Payment Terms</label>
     <required>false</required>
     <trackHistory>false</trackHistory>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <customValue>
         <fullName>Monthly</fullName>
@@ -30,7 +30,8 @@
         <label>One-Time</label>
         <color>#795548</color>
     </customValue>
-    <description>Billing frequency options used for price plans and subscription management</description>
+    <description
+  >Billing frequency options used for price plans and subscription management</description>
     <masterLabel>Billing Frequency</masterLabel>
     <sorted>false</sorted>
 </GlobalValueSet>

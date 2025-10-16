@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Description__c</fullName>
-    <description>Optional custom description or notes for this line item</description>
+    <description
+  >Optional custom description or notes for this line item</description>
     <externalId>false</externalId>
     <label>Description</label>
     <length>255</length>

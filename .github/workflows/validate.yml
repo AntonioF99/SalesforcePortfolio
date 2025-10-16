@@ -2,7 +2,7 @@ name: Validate PR
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   validate:
@@ -12,30 +12,30 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
+          node-version: "18"
+
       - name: Install Salesforce CLI
         run: |
           npm install -g @salesforce/cli
           sf --version
-      
+
       - name: Authorize Salesforce Org
         run: |
           echo "${{ secrets.SFDX_AUTH_URL }}" > auth-file.txt
           sf org login sfdx-url --sfdx-url-file auth-file.txt --alias PortfolioOrg --set-default
           rm auth-file.txt
-      
+
       - name: Validate Deploy
         run: |
           sf project deploy validate --source-dir force-app --target-org PortfolioOrg
-      
+
       - name: Comment PR
         if: always()
         uses: actions/github-script@v6

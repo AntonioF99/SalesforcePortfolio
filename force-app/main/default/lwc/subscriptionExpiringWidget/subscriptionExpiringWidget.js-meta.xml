@@ -1,16 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>64.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Expiring Trial Subscriptions</masterLabel>
-    <description>Shows Trial subscriptions expiring soon with rapid activate action. Configurable days ahead. Perfect for Sales team dashboard.</description>
+    <description
+  >Shows Trial subscriptions expiring soon with rapid activate action. Configurable days ahead. Perfect for Sales team dashboard.</description>
     <targets>
         <target>lightning__AppPage</target>
         <target>lightning__HomePage</target>
     </targets>
     <targetConfigs>
         <targetConfig targets="lightning__AppPage,lightning__HomePage">
-            <property name="daysAhead" type="Integer" default="7" label="Days to Look Ahead" description="Number of days to look ahead for expiring trials (e.g., 7 for next week)" />
+            <property
+        name="daysAhead"
+        type="Integer"
+        default="7"
+        label="Days to Look Ahead"
+        description="Number of days to look ahead for expiring trials (e.g., 7 for next week)"
+      />
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

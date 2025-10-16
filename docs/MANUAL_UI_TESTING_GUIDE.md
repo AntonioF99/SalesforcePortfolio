@@ -60,11 +60,13 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
 > **Nota**: Il campo `Billing Frequency` è sul **Price Plan**, non sulla Subscription. Viene ereditato automaticamente dal Price Plan selezionato.
 
 **✅ Verifiche Immediate**:
+
 - Subscription creata con Status = `Trial`
 - Refresh della pagina per vedere i campi formula (MRR, ARR, etc.)
 - **NON** viene generata alcuna Invoice (le trial non generano invoice)
 
 **✅ Verifiche Automation Service** (dalla classe `SubscriptionAutomationService`):
+
 - Vai alla Related List **Open Activities** o **Tasks**
 - Verifica che sono state create **3 Task di onboarding**:
   1. "Welcome Call - [Account Name]" (ActivityDate = oggi + 1 giorno, Priority = High)
@@ -72,6 +74,7 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
   3. "Month 1 Success Review - [Account Name]" (ActivityDate = oggi + 30 giorni, Priority = Normal)
 
 **✅ Verifiche Account Updates**:
+
 - Aprire l'Account associato
 - Controllare campi:
   - **Subscription Status**: `Trial Customer`
@@ -118,8 +121,9 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
    - "Subscription Activated - [Account Name]" (Priority = Normal)
 
 **✅ Verifiche Campi Formula Invoice**:
+
 - **Subtotal**: Somma automatica dei Line Items (Rollup Summary Field)
-- **Tax Amount**: Calcolato da formula (Subtotal * Tax Rate / 100)
+- **Tax Amount**: Calcolato da formula (Subtotal \* Tax Rate / 100)
 - **Total Amount**: Subtotal + Tax Amount
 
 ---
@@ -144,6 +148,7 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
 4. Click **Save**
 
 **✅ Verifiche**:
+
 1. **Subscription Updated**:
    - Status = `Cancelled`
    - Cancellation Date = Oggi
@@ -177,6 +182,7 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
 4. Click **Save**
 
 **✅ Verifica Duplicate Prevention**:
+
 - Controllare Related List **Invoices**
 - Deve esserci ancora **1 sola Invoice** per il periodo corrente
 - NON deve essere generata una seconda invoice
@@ -214,6 +220,7 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
    - Click **Save**
 
 **✅ Verifiche Automation**:
+
 - Task creata:
   - Subject: "URGENT: Overdue Payment - [Account Name]"
   - Priority: `High`
@@ -237,6 +244,7 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
 4. Click **Save**
 
 **✅ Verifiche**:
+
 1. **Task Created**:
    - Subject: "Payment Received - Thank [Account Name]"
    - Priority: `Normal`
@@ -257,6 +265,7 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
    - **Average Invoice Amount**: Total Billed / Invoice Count
 
 **✅ Test Dinamico**:
+
 1. Annotare i valori attuali
 2. Creare una nuova Invoice:
    - Status: `Sent`
@@ -284,6 +293,7 @@ Guida completa per testare manualmente tutti i workflow dell'applicazione dall'i
      - 0 = Former Customer
 
 **✅ Test Dinamico**:
+
 1. Account con subscription `Active` → Health Score = 100
 2. Modificare subscription a `Suspended` → Health Score = 25
 3. Modificare a `Cancelled` → Health Score = 0
@@ -307,6 +317,7 @@ Il `DailyMaintenanceBatch` gestisce sia le invoice scadute che le trial expirate
 2. Aprire **Developer Console** → **Debug** → **Execute Anonymous**
 
 3. Eseguire:
+
 ```apex
 DailyMaintenanceBatch batch = new DailyMaintenanceBatch();
 Database.executeBatch(batch, 200);
@@ -334,6 +345,7 @@ Database.executeBatch(batch, 200);
 2. Localizzare **Invoice Overdue Dashboard**
 
 **✅ Verifiche**:
+
 - Mostra invoice con Status = `Overdue`
 - Limite: 50 record
 - Fields: Invoice Name, Account Name, Due Date, Total Amount
@@ -343,6 +355,7 @@ Database.executeBatch(batch, 200);
 1. Localizzare **Subscription Expiring Widget**
 
 **✅ Verifiche**:
+
 - Mostra Trial subscription con Trial End Date < oggi + 7 giorni
 - Limite: 50 record
 
@@ -351,6 +364,7 @@ Database.executeBatch(batch, 200);
 ## 📊 Checklist Completa Test
 
 ### Subscription Workflows
+
 - [ ] Creazione Trial (genera 3 onboarding tasks)
 - [ ] Attivazione Trial → Active (genera Invoice + Line Item)
 - [ ] Duplicate prevention (no 2 invoice stesso mese)
@@ -359,6 +373,7 @@ Database.executeBatch(batch, 200);
 - [ ] Batch Trial Expiration
 
 ### Invoice Workflows
+
 - [ ] Generazione automatica da Subscription Active
 - [ ] Calcolo Subtotal (Rollup Summary)
 - [ ] Calcolo Tax Amount (Formula)
@@ -367,12 +382,14 @@ Database.executeBatch(batch, 200);
 - [ ] Batch Invoice Overdue
 
 ### Account Rollup Fields
+
 - [ ] Total Billed real-time update
 - [ ] Invoice Count update
 - [ ] Subscription Status update
 - [ ] Health Score 0-100
 
 ### LWC Components
+
 - [ ] Invoice Overdue Dashboard
 - [ ] Subscription Expiring Widget
 
@@ -381,12 +398,15 @@ Database.executeBatch(batch, 200);
 ## 🐛 Troubleshooting
 
 ### Invoice non generata dopo attivazione
+
 **Soluzione**: Verificare Price Plan con Unit Price > 0
 
 ### Rollup fields non aggiornano
+
 **Soluzione**: Refresh manuale pagina Account
 
 ### Batch job non schedula
+
 **Soluzione**: Controllare Setup → Scheduled Jobs
 
 ---
