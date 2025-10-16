@@ -126,7 +126,7 @@ private class SubscriptionAutomationServiceTest {
         System.assertEquals(1, invoicesAfterFirstActivation.size(), 'Should create 1 invoice on first activation');
 
         sub.Status__c = 'Cancelled';
-        sub.Cancellation_Reason__c = 'Budget Constraints';
+        sub.Cancellation_Reason__c = 'Other';
         update sub;
 
         Test.stopTest();

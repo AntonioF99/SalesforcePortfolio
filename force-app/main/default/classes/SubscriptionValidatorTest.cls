@@ -192,34 +192,34 @@ private class SubscriptionValidatorTest {
         
         Test.startTest();
         
-        // Test invalid date range
+        // Test quantity validation
         try {
-            Subscription__c invalidDates = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
-            invalidDates.Start_Date__c = Date.today();
-            insert invalidDates;
-            System.assert(false, 'Should reject invalid date range');
+            Subscription__c invalidQuantity = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+            invalidQuantity.Quantity__c = 0;
+            insert invalidQuantity;
+            System.assert(false, 'Should reject zero quantity');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('End date must be after start date'));
+            System.assert(e.getMessage().contains('Quantity must be greater than zero'));
         }
         
-        // Test trial end date validation
+        // Test negative quantity
         try {
-            Subscription__c invalidTrial = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
-            invalidTrial.Status__c = 'Trial';
-            insert invalidTrial;
-            System.assert(false, 'Should reject past trial end date');
+            Subscription__c negativeQuantity = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
+            negativeQuantity.Quantity__c = -5;
+            insert negativeQuantity;
+            System.assert(false, 'Should reject negative quantity');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('Trial end date must be in the future'));
+            System.assert(e.getMessage().contains('Quantity must be greater than zero'));
         }
         
-        // Test trial period limit (14 days max)
+        // Test active subscription requires price plan
         try {
-            Subscription__c longTrial = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
-            longTrial.Status__c = 'Trial';
-            insert longTrial;
-            System.assert(false, 'Should reject trial period over 14 days');
+            Subscription__c noPricePlan = TestDataFactory.createSubscription(acc.Id, null);
+            noPricePlan.Status__c = 'Active';
+            insert noPricePlan;
+            System.assert(false, 'Should reject active subscription without price plan');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('Trial period cannot exceed 14 days'));
+            System.assert(e.getMessage().contains('Price plan is required'));
         }
         
         // Positive case - valid subscription

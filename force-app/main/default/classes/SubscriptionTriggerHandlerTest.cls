@@ -88,14 +88,15 @@ private class SubscriptionTriggerHandlerTest {
         
         Test.startTest();
         
+        // Test validation error propagation (quantity must be > 0)
         Subscription__c sub = TestDataFactory.createSubscription(acc.Id, pricePlan.Id);
-        sub.Start_Date__c = Date.today();
+        sub.Quantity__c = 0;
         
         try {
             insert sub;
             System.assert(false, 'Handler should propagate validation errors');
         } catch (DmlException e) {
-            System.assert(e.getMessage().contains('End date must be after start date'),
+            System.assert(e.getMessage().contains('Quantity must be greater than zero'),
                         'Handler should propagate validator messages');
         }
         
