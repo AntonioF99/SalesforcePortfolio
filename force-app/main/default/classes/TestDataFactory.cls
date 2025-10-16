@@ -101,15 +101,12 @@ public class TestDataFactory {
     }
     
     public static Subscription__c createSubscription(Id accountId, Id pricePlanId) {
-        // Get B2B record type for testing
-        Id recordTypeId = Schema.SObjectType.Subscription__c.getRecordTypeInfosByDeveloperName().get('B2B_Subscription').getRecordTypeId();
-
+        // RecordTypeId is intentionally left null to allow trigger to assign it based on Account
         return new Subscription__c(
             Account__c = accountId,
             Price_Plan__c = pricePlanId,
             Status__c = 'Draft',
-            Start_Date__c = Date.today(),
-            RecordTypeId = recordTypeId
+            Start_Date__c = Date.today()
         );
     }
     

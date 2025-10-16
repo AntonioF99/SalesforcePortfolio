@@ -19,6 +19,52 @@ public class TestScenarioFactory {
         }
     }
 
+    // ============ SUBSCRIPTION CREATION WITH EXPLICIT RECORD TYPES ============
+    
+    /**
+     * @description Creates a B2B Subscription with explicit B2B record type
+     * @param accountId Account to associate subscription with
+     * @param pricePlanId Price Plan to associate subscription with
+     * @return Subscription__c with B2B record type (not inserted)
+     */
+    public static Subscription__c createB2BSubscription(Id accountId, Id pricePlanId) {
+        Id recordTypeId = Schema.SObjectType.Subscription__c
+            .getRecordTypeInfosByDeveloperName()
+            .get('B2B_Subscription')
+            .getRecordTypeId();
+        
+        return new Subscription__c(
+            Account__c = accountId,
+            Price_Plan__c = pricePlanId,
+            Status__c = 'Draft',
+            Start_Date__c = Date.today(),
+            RecordTypeId = recordTypeId
+        );
+    }
+    
+    /**
+     * @description Creates a B2C Subscription with explicit B2C record type
+     * @param accountId Account to associate subscription with
+     * @param pricePlanId Price Plan to associate subscription with
+     * @return Subscription__c with B2C record type (not inserted)
+     */
+    public static Subscription__c createB2CSubscription(Id accountId, Id pricePlanId) {
+        Id recordTypeId = Schema.SObjectType.Subscription__c
+            .getRecordTypeInfosByDeveloperName()
+            .get('B2C_Subscription')
+            .getRecordTypeId();
+        
+        return new Subscription__c(
+            Account__c = accountId,
+            Price_Plan__c = pricePlanId,
+            Status__c = 'Draft',
+            Start_Date__c = Date.today(),
+            RecordTypeId = recordTypeId
+        );
+    }
+
+    // ============ INVOICE CREATION SCENARIOS ============
+
     public static Invoice__c createDraftInvoice(Id accountId) {
         ensureContactExists(accountId);
         Invoice__c invoice = TestDataFactory.createInvoice(accountId);

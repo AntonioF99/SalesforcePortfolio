@@ -44,11 +44,18 @@ public class RecordTypeUtils {
             if (sub.RecordTypeId == null && sub.Account__c != null && accountsMap.containsKey(sub.Account__c)) {
                 Account acc = accountsMap.get(sub.Account__c);
                 
+                // DEBUG: Log account details
+                System.debug('### RecordTypeUtils - Account: ' + acc.Name + ' | Type: ' + acc.Type + ' | Employees: ' + acc.NumberOfEmployees);
+                Boolean isBusiness = isBusinessAccount(acc);
+                System.debug('### RecordTypeUtils - isBusinessAccount result: ' + isBusiness);
+                
                 // Business logic: B2B if company account or >10 employees
-                if (isBusinessAccount(acc)) {
+                if (isBusiness) {
                     sub.RecordTypeId = b2bRecordTypeId;
+                    System.debug('### RecordTypeUtils - Assigned B2B RecordType');
                 } else {
                     sub.RecordTypeId = b2cRecordTypeId;
+                    System.debug('### RecordTypeUtils - Assigned B2C RecordType');
                 }
             }
         }
