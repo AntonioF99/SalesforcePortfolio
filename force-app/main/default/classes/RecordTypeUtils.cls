@@ -20,8 +20,8 @@ public class RecordTypeUtils {
         // Get Account information for business logic
         Set<Id> accountIds = new Set<Id>();
         for (Subscription__c sub : subscriptions) {
-            // Only auto-assign if RecordTypeId is not already set
-            if (sub.Account__c != null && sub.RecordTypeId == null) {
+            // Collect all accounts (Salesforce auto-assigns default RecordType before trigger)
+            if (sub.Account__c != null) {
                 accountIds.add(sub.Account__c);
             }
         }
@@ -40,22 +40,15 @@ public class RecordTypeUtils {
         Id b2cRecordTypeId = getSubscriptionRecordTypeId('B2C_Subscription');
         
         for (Subscription__c sub : subscriptions) {
-            // Only auto-assign if RecordTypeId is not already set
-            if (sub.RecordTypeId == null && sub.Account__c != null && accountsMap.containsKey(sub.Account__c)) {
+            // Always assign RecordType based on Account (Salesforce auto-assigns a default before trigger)
+            if (sub.Account__c != null && accountsMap.containsKey(sub.Account__c)) {
                 Account acc = accountsMap.get(sub.Account__c);
                 
-                // DEBUG: Log account details
-                System.debug('### RecordTypeUtils - Account: ' + acc.Name + ' | Type: ' + acc.Type + ' | Employees: ' + acc.NumberOfEmployees);
-                Boolean isBusiness = isBusinessAccount(acc);
-                System.debug('### RecordTypeUtils - isBusinessAccount result: ' + isBusiness);
-                
                 // Business logic: B2B if company account or >10 employees
-                if (isBusiness) {
+                if (isBusinessAccount(acc)) {
                     sub.RecordTypeId = b2bRecordTypeId;
-                    System.debug('### RecordTypeUtils - Assigned B2B RecordType');
                 } else {
                     sub.RecordTypeId = b2cRecordTypeId;
-                    System.debug('### RecordTypeUtils - Assigned B2C RecordType');
                 }
             }
         }

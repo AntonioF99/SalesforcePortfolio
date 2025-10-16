@@ -32,17 +32,9 @@ public class RecordTypeUtilsTest {
     
     @isTest
     static void testSubscriptionRecordTypeAssignment() {
-        List<Account> accounts = [SELECT Id, Type, NumberOfEmployees FROM Account];
-        Account b2bAccount = null;
-        Account b2cAccount = null;
-        
-        for (Account acc : accounts) {
-            if (acc.NumberOfEmployees > 10) {
-                b2bAccount = acc;
-            } else {
-                b2cAccount = acc;
-            }
-        }
+        // Query the specific accounts created in setup by name
+        Account b2bAccount = [SELECT Id, Type, NumberOfEmployees FROM Account WHERE Name = 'Enterprise Corp' LIMIT 1];
+        Account b2cAccount = [SELECT Id, Type, NumberOfEmployees FROM Account WHERE Name = 'John Doe' LIMIT 1];
         
         // Create price plan
         Price_Plan__c pricePlan = TestDataFactory.createPricePlan();
