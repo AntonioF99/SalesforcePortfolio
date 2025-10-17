@@ -69,7 +69,7 @@ public class SubscriptionValidator {
     }
   }
 
-  /*
+  /**
    * @description Validates cancellation permissions for subscription status changes
    * @param oldSubscriptions Map of old subscription records
    * @param newSubscriptions Map of new subscription records
@@ -97,6 +97,10 @@ public class SubscriptionValidator {
     }
   }
 
+  /**
+   * @description Validates deletion permissions for subscriptions
+   * @param subscriptions List of subscription records to validate
+   */
   public static void validateDeletionPermissions(
     List<Subscription__c> subscriptions
   ) {
@@ -107,13 +111,16 @@ public class SubscriptionValidator {
     }
   }
 
+  /**
+   * @description Validates business rules for subscription records
+   * @param subscriptions List of subscription records to validate
+   * @param isUpdate True if this is an update operation
+   */
   public static void validateBusinessRules(
     List<Subscription__c> subscriptions,
     Boolean isUpdate
   ) {
     for (Subscription__c sub : subscriptions) {
-      // Note: Trial_End_Date__c validation removed to allow backdating for testing/batch jobs
-      // Auto-population logic in setDefaults() ensures correct dates for normal flow
 
       if (sub.Quantity__c != null && sub.Quantity__c <= 0) {
         sub.addError('Quantity__c', 'Quantity must be greater than zero');
@@ -137,6 +144,10 @@ public class SubscriptionValidator {
     }
   }
 
+  /**
+   * @description Sets default values for new subscription records
+   * @param subscriptions List of subscription records to set defaults for
+   */
   public static void setDefaults(List<Subscription__c> subscriptions) {
     for (Subscription__c sub : subscriptions) {
       if (String.isBlank(sub.Status__c)) {
@@ -147,7 +158,6 @@ public class SubscriptionValidator {
         sub.Start_Date__c = Date.today();
       }
 
-      // Auto-populate Trial_End_Date based on Start_Date (not today!)
       if (
         sub.Status__c == Constants.SUBSCRIPTION_STATUS_TRIAL &&
         sub.Trial_End_Date__c == null
@@ -158,7 +168,6 @@ public class SubscriptionValidator {
         sub.Trial_End_Date__c = baseDate.addDays(Constants.DEFAULT_TRIAL_DAYS);
       }
 
-      // Auto-populate Cancellation Date when Status = Cancelled
       if (
         sub.Status__c == Constants.SUBSCRIPTION_STATUS_CANCELLED &&
         sub.Cancellation_Date__c == null
@@ -168,7 +177,7 @@ public class SubscriptionValidator {
     }
   }
 
-  /*
+  /**
    * @description Identifies subscriptions that need invoice generation
    * @param oldSubscriptions Map of old subscription records
    * @param newSubscriptions Map of new subscription records

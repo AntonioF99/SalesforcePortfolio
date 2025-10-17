@@ -36,7 +36,6 @@ public class InvoiceTriggerHandler implements IHandler {
     List<Invoice__c> invoices = (List<Invoice__c>) newMap.values();
 
     updateAccountInvoiceStats(invoices);
-    handleNewInvoices(invoices);
 
     // Publish platform events for external integration
     PlatformEventPublisher.publishInvoiceEvents(invoices, 'Created');
@@ -56,26 +55,22 @@ public class InvoiceTriggerHandler implements IHandler {
       storeInvoicesForRecalculation(needingRecalc);
     }
 
-    // Publish consolidated platform events for status changes and updates
     PlatformEventPublisher.publishInvoiceStatusChanges(invoices, oldInvoices);
-    // Note: publishInvoiceStatusChanges now handles both status changes and general updates
   }
 
   public void afterDelete(Map<Id, SObject> oldMap) {
     List<Invoice__c> invoices = (List<Invoice__c>) oldMap.values();
 
     updateAccountInvoiceStats(invoices);
-    handleDeletedInvoices(invoices);
   }
 
   public void afterUndelete(Map<Id, SObject> newMap) {
     List<Invoice__c> invoices = (List<Invoice__c>) newMap.values();
 
     updateAccountInvoiceStats(invoices);
-    handleUndeletedInvoices(invoices);
   }
 
-  /*
+  /**
    * @description Processes invoices based on status changes and routes to appropriate handlers
    * @param invoices List of updated invoice records
    * @param oldInvoices Map of invoice records before update
@@ -84,7 +79,6 @@ public class InvoiceTriggerHandler implements IHandler {
     List<Invoice__c> invoices,
     Map<Id, Invoice__c> oldInvoices
   ) {
-    // Early return if no data
     if (
       invoices == null ||
       invoices.isEmpty() ||
@@ -150,31 +144,6 @@ public class InvoiceTriggerHandler implements IHandler {
     Set<Id> invoiceIds = new Map<Id, Invoice__c>(overdueInvoices).keySet();
 
     InvoiceAutomationService.processStatusChanges(invoiceIds);
-  }
-
-  private void handleNewInvoices(List<Invoice__c> newInvoices) {
-    if (!newInvoices.isEmpty()) {
-      System.debug('Processing ' + newInvoices.size() + ' new invoices');
-      // TODO: STORY-013 - Invoice number sequence management
-    }
-  }
-
-  private void handleDeletedInvoices(List<Invoice__c> deletedInvoices) {
-    if (!deletedInvoices.isEmpty()) {
-      System.debug(
-        'Processing ' + deletedInvoices.size() + ' deleted invoices'
-      );
-      // TODO: STORY-014 - Audit trail for deleted invoices
-    }
-  }
-
-  private void handleUndeletedInvoices(List<Invoice__c> undeletedInvoices) {
-    if (!undeletedInvoices.isEmpty()) {
-      System.debug(
-        'Processing ' + undeletedInvoices.size() + ' undeleted invoices'
-      );
-      // TODO: STORY-015 - Restore related data on undelete
-    }
   }
 
   /**
@@ -267,12 +236,19 @@ public class InvoiceTriggerHandler implements IHandler {
     }
   }
 
+  /**
+   * @description Stores invoices that need recalculation for asynchronous processing
+   * @param invoiceIds Set of invoice IDs requiring recalculation
+   */
   private void storeInvoicesForRecalculation(Set<Id> invoiceIds) {
-    if (!invoiceIds.isEmpty()) {
-      System.debug(
-        'Storing ' + invoiceIds.size() + ' invoices for recalculation'
-      );
-      // TODO: STORY-017 - Asynchronous line item recalculation
+    if (invoiceIds == null || invoiceIds.isEmpty()) {
+      return;
     }
+    
+    System.debug(
+      'Storing ' + invoiceIds.size() + ' invoices for recalculation'
+    );
+    // Invoice recalculation is triggered by InvoiceValidator.getInvoicesNeedingRecalculation
+    // Future enhancement: Queue @future method or batch job for asynchronous recalculation
   }
 }

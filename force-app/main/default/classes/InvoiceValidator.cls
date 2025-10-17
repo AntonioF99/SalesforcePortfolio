@@ -11,7 +11,7 @@ public class InvoiceValidator {
         Constants.INVOICE_STATUS_VOIDED
     };
     
-    /*
+    /**
      * @description Validates user permissions for invoice operations
      * @param invoices List of invoice records to validate
      * @param operation Type of operation (UPDATE, DELETE, etc.)
@@ -20,19 +20,16 @@ public class InvoiceValidator {
     public static void validateUserPermissions(List<Invoice__c> invoices, String operation, 
                                              Map<Id, Invoice__c> oldInvoices) {
         
-        // Note: User permission validation moved to SecurityUtils for demonstration
-        // In production, this would be implemented based on business requirements
-        
-        if (operation == 'UPDATE') {
-            // Future: Add permission-based validation here if needed
-            // For now, SecurityUtils provides the logic for controllers/services
-        }
-        
         if (operation == 'DELETE') {
             validateInvoiceDeletion(invoices);
         }
     }
     
+    /**
+     * @description Validates business rules for invoice records
+     * @param invoices List of invoice records to validate
+     * @param isUpdate True if this is an update operation
+     */
     public static void validateBusinessRules(List<Invoice__c> invoices, Boolean isUpdate) {
         
         for (Invoice__c inv : invoices) {
@@ -47,14 +44,14 @@ public class InvoiceValidator {
                 }
             }
             
-            // Note: Subtotal__c, Tax_Amount__c, and Balance_Due__c are formula fields
-            // They cannot be negative as they're calculated from positive line item values
-            // No validation needed here
-            
             validateStatusSpecificRules(inv);
         }
     }
     
+    /**
+     * @description Sets default values for new invoice records
+     * @param invoices List of invoice records to set defaults for
+     */
     public static void setDefaults(List<Invoice__c> invoices) {
         
         for (Invoice__c inv : invoices) {
@@ -74,12 +71,10 @@ public class InvoiceValidator {
             if (inv.Tax_Rate__c == null) {
                 inv.Tax_Rate__c = 0;
             }
-            
-            // Note: Balance_Due__c is a formula field, cannot be set manually
         }
     }
     
-    /*
+    /**
      * @description Calculates tax amounts based on account billing address
      * @param invoices List of invoice records to process
      */

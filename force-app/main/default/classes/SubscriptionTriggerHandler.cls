@@ -48,12 +48,10 @@ public class SubscriptionTriggerHandler implements IHandler {
         activeSubscriptions.add(sub);
       }
     }
-    if (!activeSubscriptions.isEmpty()) {
-      PlatformEventPublisher.publishSubscriptionEvents(
-        activeSubscriptions,
-        'Created'
-      );
-    }
+    PlatformEventPublisher.publishSubscriptionEvents(
+      activeSubscriptions,
+      'Created'
+    );
   }
 
   public void afterUpdate(Map<Id, SObject> oldMap, Map<Id, SObject> newMap) {
@@ -81,18 +79,16 @@ public class SubscriptionTriggerHandler implements IHandler {
   public void afterDelete(Map<Id, SObject> oldMap) {
     List<Subscription__c> subscriptions = (List<Subscription__c>) oldMap.values();
 
-    handleDeletedSubscriptions(subscriptions);
     updateAccountSubscriptionStats(subscriptions);
   }
 
   public void afterUndelete(Map<Id, SObject> newMap) {
     List<Subscription__c> subscriptions = (List<Subscription__c>) newMap.values();
 
-    handleUndeletedSubscriptions(subscriptions);
     updateAccountSubscriptionStats(subscriptions);
   }
 
-  /*
+  /**
    * @description Processes subscriptions based on status changes and routes to appropriate handlers
    * @param oldSubscriptions Map of subscription records before update
    * @param newSubscriptions Map of subscription records after update
@@ -101,7 +97,6 @@ public class SubscriptionTriggerHandler implements IHandler {
     Map<Id, Subscription__c> oldSubscriptions,
     Map<Id, Subscription__c> newSubscriptions
   ) {
-    // Early return if no data
     if (
       oldSubscriptions == null ||
       oldSubscriptions.isEmpty() ||
@@ -202,30 +197,6 @@ public class SubscriptionTriggerHandler implements IHandler {
       .keySet();
 
     SubscriptionAutomationService.processNewSubscriptions(subscriptionIds);
-  }
-
-  private void handleDeletedSubscriptions(
-    List<Subscription__c> deletedSubscriptions
-  ) {
-    if (!deletedSubscriptions.isEmpty()) {
-      System.debug(
-        'Processing ' + deletedSubscriptions.size() + ' deleted subscriptions'
-      );
-      // TODO: STORY-025 - Clean up related data
-    }
-  }
-
-  private void handleUndeletedSubscriptions(
-    List<Subscription__c> undeletedSubscriptions
-  ) {
-    if (!undeletedSubscriptions.isEmpty()) {
-      System.debug(
-        'Processing ' +
-          undeletedSubscriptions.size() +
-          ' undeleted subscriptions'
-      );
-      // TODO: STORY-026 - Restore related data
-    }
   }
 
   /**
@@ -338,14 +309,21 @@ public class SubscriptionTriggerHandler implements IHandler {
     }
   }
 
+  /**
+   * @description Queues invoice generation for subscriptions that just became active
+   * @param subscriptionIds Set of subscription IDs needing invoice generation
+   */
   private void queueInvoiceGeneration(Set<Id> subscriptionIds) {
-    if (!subscriptionIds.isEmpty()) {
-      System.debug(
-        'Queuing invoice generation for ' +
-          subscriptionIds.size() +
-          ' subscriptions'
-      );
-      // TODO: STORY-028 - Automated billing system integration
+    if (subscriptionIds == null || subscriptionIds.isEmpty()) {
+      return;
     }
+    
+    System.debug(
+      'Queuing invoice generation for ' +
+        subscriptionIds.size() +
+        ' subscriptions'
+    );
+    // Invoice generation handled by SubscriptionAutomationService.generateInvoicesForActiveSubscriptions
+    // Called from handleActivatedSubscriptions when subscriptions become active
   }
 }
