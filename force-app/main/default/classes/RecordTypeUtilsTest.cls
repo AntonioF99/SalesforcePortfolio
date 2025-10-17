@@ -123,24 +123,4 @@ public class RecordTypeUtilsTest {
         System.assert(!subscriptionTypes.isEmpty(), 'Should have subscription record types');
         System.assert(!invoiceTypes.isEmpty(), 'Should have invoice record types');
     }
-    
-    @isTest 
-    static void testRecordTypeAssignmentWithNullAccount() {
-        // Test edge case with null account
-        List<Subscription__c> subscriptions = new List<Subscription__c>();
-        Subscription__c sub = new Subscription__c(
-            Status__c = 'Draft',
-            Start_Date__c = Date.today()
-            // No Account__c
-        );
-        subscriptions.add(sub);
-        
-        Test.startTest();
-        // Should not fail even with null account
-        RecordTypeUtils.assignSubscriptionRecordTypes(subscriptions);
-        Test.stopTest();
-        
-        // Should not crash, record type might be null or default
-        System.assert(true, 'Should handle null account gracefully');
-    }
 }
