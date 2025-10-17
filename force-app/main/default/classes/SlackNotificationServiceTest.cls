@@ -12,10 +12,10 @@ private class SlackNotificationServiceTest {
     }
 
     /**
-     * Test subscription event notification
+     * Test all subscription event types in one test
      */
     @isTest
-    static void testNotifySubscriptionEventCreated() {
+    static void testNotifySubscriptionEvents() {
         // Setup mock callout
         Test.setMock(HttpCalloutMock.class, new SlackSuccessCalloutMock());
         
@@ -28,84 +28,22 @@ private class SlackNotificationServiceTest {
         String subscriptionJson = JSON.serialize(subData);
         
         Test.startTest();
-        SlackNotificationService.notifySubscriptionEvent(
-            subscriptionJson, 
-            Constants.EVENT_TYPE_CREATED
-        );
+        // Test all event types - each triggers different message format
+        SlackNotificationService.notifySubscriptionEvent(subscriptionJson, Constants.EVENT_TYPE_CREATED);
+        SlackNotificationService.notifySubscriptionEvent(subscriptionJson, Constants.EVENT_TYPE_STATUS_CHANGED);
+        SlackNotificationService.notifySubscriptionEvent(subscriptionJson, Constants.EVENT_TYPE_CANCELLED);
+        SlackNotificationService.notifySubscriptionEvent(subscriptionJson, 'UnknownEventType'); // Default case
         Test.stopTest();
         
         // Verify no exceptions thrown (future method completes successfully)
-        System.assert(true, 'Subscription created notification sent');
-    }
-
-    @isTest
-    static void testNotifySubscriptionEventStatusChanged() {
-        Test.setMock(HttpCalloutMock.class, new SlackSuccessCalloutMock());
-        
-        Map<String, Object> subData = new Map<String, Object>{
-            'account_name' => 'Test Account',
-            'subscription_name' => 'SUB-001',
-            'status' => 'Cancelled'
-        };
-        String subscriptionJson = JSON.serialize(subData);
-        
-        Test.startTest();
-        SlackNotificationService.notifySubscriptionEvent(
-            subscriptionJson, 
-            Constants.EVENT_TYPE_STATUS_CHANGED
-        );
-        Test.stopTest();
-        
-        System.assert(true, 'Subscription status change notification sent');
-    }
-
-    @isTest
-    static void testNotifySubscriptionEventCancelled() {
-        Test.setMock(HttpCalloutMock.class, new SlackSuccessCalloutMock());
-        
-        Map<String, Object> subData = new Map<String, Object>{
-            'account_name' => 'Test Account',
-            'subscription_name' => 'SUB-001',
-            'status' => 'Cancelled'
-        };
-        String subscriptionJson = JSON.serialize(subData);
-        
-        Test.startTest();
-        SlackNotificationService.notifySubscriptionEvent(
-            subscriptionJson, 
-            Constants.EVENT_TYPE_CANCELLED
-        );
-        Test.stopTest();
-        
-        System.assert(true, 'Subscription cancelled notification sent');
-    }
-
-    @isTest
-    static void testNotifySubscriptionEventDefault() {
-        Test.setMock(HttpCalloutMock.class, new SlackSuccessCalloutMock());
-        
-        Map<String, Object> subData = new Map<String, Object>{
-            'account_name' => 'Test Account',
-            'subscription_name' => 'SUB-001',
-            'status' => 'Active'
-        };
-        String subscriptionJson = JSON.serialize(subData);
-        
-        Test.startTest();
-        SlackNotificationService.notifySubscriptionEvent(
-            subscriptionJson, 
-            'UnknownEventType'
-        );
-        Test.stopTest();
-        
-        System.assert(true, 'Default subscription notification sent');
+        System.assert(true, 'All subscription notifications sent successfully');
     }
 
     /**
-     * Test invoice event notifications
+     * Test all invoice event types in one test
      */
     @isTest
-    static void testNotifyInvoiceEventCreated() {
+    static void testNotifyInvoiceEvents() {
         Test.setMock(HttpCalloutMock.class, new SlackSuccessCalloutMock());
         
         Map<String, Object> invData = new Map<String, Object>{
@@ -116,97 +54,15 @@ private class SlackNotificationServiceTest {
         String invoiceJson = JSON.serialize(invData);
         
         Test.startTest();
-        SlackNotificationService.notifyInvoiceEvent(
-            invoiceJson, 
-            Constants.EVENT_TYPE_CREATED
-        );
+        // Test all event types - each triggers different message format
+        SlackNotificationService.notifyInvoiceEvent(invoiceJson, Constants.EVENT_TYPE_CREATED);
+        SlackNotificationService.notifyInvoiceEvent(invoiceJson, Constants.EVENT_TYPE_SENT);
+        SlackNotificationService.notifyInvoiceEvent(invoiceJson, Constants.EVENT_TYPE_PAID);
+        SlackNotificationService.notifyInvoiceEvent(invoiceJson, Constants.EVENT_TYPE_VOIDED);
+        SlackNotificationService.notifyInvoiceEvent(invoiceJson, 'UnknownEventType'); // Default case
         Test.stopTest();
         
-        System.assert(true, 'Invoice created notification sent');
-    }
-
-    @isTest
-    static void testNotifyInvoiceEventSent() {
-        Test.setMock(HttpCalloutMock.class, new SlackSuccessCalloutMock());
-        
-        Map<String, Object> invData = new Map<String, Object>{
-            'account_name' => 'Test Account',
-            'invoice_number' => 'INV-001',
-            'total_amount' => 1000.00
-        };
-        String invoiceJson = JSON.serialize(invData);
-        
-        Test.startTest();
-        SlackNotificationService.notifyInvoiceEvent(
-            invoiceJson, 
-            Constants.EVENT_TYPE_SENT
-        );
-        Test.stopTest();
-        
-        System.assert(true, 'Invoice sent notification sent');
-    }
-
-    @isTest
-    static void testNotifyInvoiceEventPaid() {
-        Test.setMock(HttpCalloutMock.class, new SlackSuccessCalloutMock());
-        
-        Map<String, Object> invData = new Map<String, Object>{
-            'account_name' => 'Test Account',
-            'invoice_number' => 'INV-001',
-            'total_amount' => 1000.00
-        };
-        String invoiceJson = JSON.serialize(invData);
-        
-        Test.startTest();
-        SlackNotificationService.notifyInvoiceEvent(
-            invoiceJson, 
-            Constants.EVENT_TYPE_PAID
-        );
-        Test.stopTest();
-        
-        System.assert(true, 'Invoice paid notification sent');
-    }
-
-    @isTest
-    static void testNotifyInvoiceEventVoided() {
-        Test.setMock(HttpCalloutMock.class, new SlackSuccessCalloutMock());
-        
-        Map<String, Object> invData = new Map<String, Object>{
-            'account_name' => 'Test Account',
-            'invoice_number' => 'INV-001',
-            'total_amount' => 1000.00
-        };
-        String invoiceJson = JSON.serialize(invData);
-        
-        Test.startTest();
-        SlackNotificationService.notifyInvoiceEvent(
-            invoiceJson, 
-            Constants.EVENT_TYPE_VOIDED
-        );
-        Test.stopTest();
-        
-        System.assert(true, 'Invoice voided notification sent');
-    }
-
-    @isTest
-    static void testNotifyInvoiceEventDefault() {
-        Test.setMock(HttpCalloutMock.class, new SlackSuccessCalloutMock());
-        
-        Map<String, Object> invData = new Map<String, Object>{
-            'account_name' => 'Test Account',
-            'invoice_number' => 'INV-001',
-            'total_amount' => 1000.00
-        };
-        String invoiceJson = JSON.serialize(invData);
-        
-        Test.startTest();
-        SlackNotificationService.notifyInvoiceEvent(
-            invoiceJson, 
-            'UnknownEventType'
-        );
-        Test.stopTest();
-        
-        System.assert(true, 'Default invoice notification sent');
+        System.assert(true, 'All invoice notifications sent successfully');
     }
 
     /**
