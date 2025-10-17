@@ -72,9 +72,7 @@ public class DailyMaintenanceBatch implements Database.Batchable<sObject>, Datab
         
         // Send email summary to admins (optional)
         sendAdminSummary(bc);
-    }
-
-    /**
+    }    /**
      * Process overdue invoices
      */
     private void processOverdueInvoices(List<Invoice__c> invoices) {
@@ -99,11 +97,9 @@ public class DailyMaintenanceBatch implements Database.Batchable<sObject>, Datab
         List<Subscription__c> expiredTrials = [
             SELECT Id, Name, Status__c, Trial_End_Date__c
             FROM Subscription__c
-            WHERE Status__c = 'Trial'
+            WHERE Status__c = :Constants.SUBSCRIPTION_STATUS_TRIAL
             AND Trial_End_Date__c < TODAY
-            WITH SECURITY_ENFORCED
         ];
-
         if (expiredTrials.isEmpty()) {
             System.debug('No expired trials found');
             return;
@@ -111,7 +107,7 @@ public class DailyMaintenanceBatch implements Database.Batchable<sObject>, Datab
 
         // Update status to Cancelled with reason
         for (Subscription__c sub : expiredTrials) {
-            sub.Status__c = 'Cancelled';
+            sub.Status__c = Constants.SUBSCRIPTION_STATUS_CANCELLED;
             sub.Cancellation_Reason__c = 'Trial period expired';
             sub.Cancellation_Date__c = Date.today();
         }

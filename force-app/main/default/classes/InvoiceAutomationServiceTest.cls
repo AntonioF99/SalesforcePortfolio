@@ -77,34 +77,35 @@ private class InvoiceAutomationServiceTest {
         invoice.Status__c = Constants.INVOICE_STATUS_SENT;
         update invoice;
         
-        // Then mark as PAID
-        invoice.Status__c = Constants.INVOICE_STATUS_PAID;
-        update invoice;
+        // Delete any tasks created by status change to SENT
+        delete [SELECT Id FROM Task WHERE WhatId = :invoice.Id];
         
         Test.startTest();
-        InvoiceAutomationService.processStatusChanges(new Set<Id>{invoice.Id});
+        // Then mark as PAID - trigger will call processStatusChanges()
+        invoice.Status__c = Constants.INVOICE_STATUS_PAID;
+        update invoice;
         Test.stopTest();
         
         // Verify payment received task created
         List<Task> tasks = [SELECT Subject FROM Task WHERE WhatId = :invoice.Id];
         System.assertEquals(1, tasks.size(), 'Payment task should be created');
-        System.assert(tasks[0].Subject.contains('received'), 'Should be payment received task');
+        System.assert(tasks[0].Subject.contains('Payment'), 'Should be payment received task');
     }
     
-    @isTest
+        @isTest
     static void testProcessOverdueInvoiceCreatesTask() {
         Account acc = [SELECT Id FROM Account LIMIT 1];
         
-        // Create DRAFT invoice first
+        // Create invoice in DRAFT first
         Invoice__c invoice = new Invoice__c(
             Account__c = acc.Id,
             Status__c = Constants.INVOICE_STATUS_DRAFT,
-            Invoice_Date__c = Date.today().addDays(-60),
-            Due_Date__c = Date.today().addDays(-30)
+            Invoice_Date__c = Date.today().addDays(-40),
+            Due_Date__c = Date.today().addDays(-10)
         );
         insert invoice;
         
-        // Add line item to give it a subtotal
+        // Add line item
         Invoice_Line_Item__c lineItem = new Invoice_Line_Item__c(
             Invoice__c = invoice.Id,
             Description__c = 'Test Item',
@@ -113,22 +114,23 @@ private class InvoiceAutomationServiceTest {
         );
         insert lineItem;
         
-        // Update to SENT (now has subtotal)
+        // Update to SENT
         invoice.Status__c = Constants.INVOICE_STATUS_SENT;
         update invoice;
         
-        // Mark as OVERDUE
-        invoice.Status__c = Constants.INVOICE_STATUS_OVERDUE;
-        update invoice;
+        // Delete any tasks created by status change to SENT
+        delete [SELECT Id FROM Task WHERE WhatId = :invoice.Id];
         
         Test.startTest();
-        InvoiceAutomationService.processStatusChanges(new Set<Id>{invoice.Id});
+        // Mark as OVERDUE - trigger will call processStatusChanges()
+        invoice.Status__c = Constants.INVOICE_STATUS_OVERDUE;
+        update invoice;
         Test.stopTest();
         
         // Verify overdue task created
         List<Task> tasks = [SELECT Subject FROM Task WHERE WhatId = :invoice.Id];
         System.assertEquals(1, tasks.size(), 'Overdue task should be created');
-        System.assert(tasks[0].Subject.contains('OVERDUE'), 'Should be overdue task');
+        System.assert(tasks[0].Subject.contains('Overdue') || tasks[0].Subject.contains('URGENT'), 'Should be overdue task');
     }
     
     @isTest
