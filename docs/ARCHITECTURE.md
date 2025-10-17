@@ -1,422 +1,212 @@
-# Architecture Overview
+# Architecture Documentation
 
-## 🏗️ System Architecture
+## System Overview
 
-This Salesforce Subscription Billing system follows enterprise-level architecture patterns emphasizing separation of concerns, maintainability, and scalability.
+This Salesforce Subscription Billing system follows enterprise architecture patterns emphasizing separation of concerns, maintainability, and scalability.
 
-## 📊 High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     USER INTERFACES                          │
-│  Lightning Experience │ Lightning Web Components │ Mobile    │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    CONTROLLERS LAYER                         │
-│         SubscriptionController │ InvoiceController           │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    VALIDATION LAYER                          │
-│      SubscriptionValidator │ InvoiceValidator                │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     SERVICE LAYER                            │
-│  SubscriptionAutomationService │ InvoiceAutomationService    │
-│         SlackNotificationService (Integration)               │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    TRIGGER LAYER                             │
-│  Trigger Framework (IHandler, TriggerFramework)              │
-│  SubscriptionTriggerHandler │ InvoiceTriggerHandler          │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     DATA LAYER                               │
-│  Custom Objects │ Standard Objects │ Platform Events         │
-│  Subscription__c │ Invoice__c │ InvoiceLineItem__c          │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## 🎯 Design Patterns
+## Design Patterns
 
 ### 1. Trigger Handler Pattern
 
-**Purpose**: Separate trigger logic from business logic
-
-**Implementation**:
-
+**Implementation:**
 ```
 Trigger (SubscriptionTrigger)
     ↓
 TriggerFramework (abstract base class)
     ↓
-SubscriptionTriggerHandler (implements IHandler)
+Handler (SubscriptionTriggerHandler implements IHandler)
     ↓
 Service Layer (SubscriptionAutomationService)
 ```
 
-**Benefits**:
-
-- Single Trigger per Object
+**Benefits:**
+- Single trigger per object
 - Testable business logic
-- Governor limit optimization
+- Governor limit optimization through bulkification
 - Clear separation of concerns
+
+**Key Files:**
+- `TriggerFramework.cls` - Abstract base class for all handlers
+- `IHandler.cls` - Interface defining trigger context methods
+- `SubscriptionTriggerHandler.cls` - Business logic for Subscription__c
+- `InvoiceTriggerHandler.cls` - Business logic for Invoice__c
 
 ### 2. Service Layer Pattern
 
-**Purpose**: Encapsulate business logic for reuse
+**Purpose:** Encapsulate reusable business logic independent of trigger context.
 
-**Key Services**:
+**Key Services:**
+- `SubscriptionAutomationService` - Subscription lifecycle management, invoice generation
+- `InvoiceAutomationService` - Invoice processing, task creation for workflows
+- `SlackNotificationService` - External system integration via HTTP callouts
 
-- `SubscriptionAutomationService`: Subscription lifecycle management
-- `InvoiceAutomationService`: Invoice generation and processing
-- `SlackNotificationService`: External system integration
-
-**Benefits**:
-
-- Reusable business logic
-- Independent testing
-- Loose coupling
-- Transaction management
+**Benefits:**
+- Business logic reusable across triggers, controllers, batch jobs
+- Independent unit testing
+- Transaction management and error handling centralized
 
 ### 3. Validator Pattern
 
-**Purpose**: Centralize validation logic
+**Purpose:** Centralize validation logic for business rules and data integrity.
 
-**Key Validators**:
+**Key Validators:**
+- `SubscriptionValidator` - Status transitions, business rules, permissions
+- `InvoiceValidator` - Data integrity, calculation accuracy, status validation
 
-- `SubscriptionValidator`: Business rule validation
-- `InvoiceValidator`: Data integrity checks
+**Benefits:**
+- Single source of truth for validation rules
+- Reusable across triggers, controllers, flows
+- Consistent error messages
 
-**Benefits**:
+### 4. Factory Pattern (Test Utilities)
 
-- Consistent validation
-- Reusable across contexts
-- Centralized error messages
-- Easy to maintain
+**Purpose:** Standardized test data creation.
 
-### 4. Factory Pattern
+**Key Factories:**
+- `TestDataFactory` - Simple object creation with defaults
+- `TestScenarioFactory` - Complex business scenarios (e.g., subscription with invoices)
 
-**Purpose**: Standardize object creation in tests
+**Benefits:**
+- Consistent test data across all test classes
+- Reduces test setup code duplication
+- Easy maintenance when object structure changes
 
-**Implementation**:
+## Data Model
 
-- `TestDataFactory`: Basic test data creation
-- `TestScenarioFactory`: Complex scenario setup
+### Core Objects
 
-**Benefits**:
+**Subscription__c**
+- Record Types: B2B_Subscription, B2C_Subscription
+- Status Flow: Draft → Trial → Active → Suspended/Cancelled
+- Key Fields: Price_Plan__c (lookup), Start_Date__c, Trial_End_Date__c, MRR__c, ARR__c
 
-- Consistent test data
-- Reduced test code duplication
-- Easy scenario creation
-- Maintainable tests
+**Invoice__c**
+- Record Types: Standard_Invoice, High_Value_Invoice (>€5,000)
+- Status Flow: Draft → Sent → Paid/Overdue/Voided
+- Key Fields: Subtotal__c, Tax_Amount__c, Total_Amount__c, Balance_Due__c
 
-## 🔄 Data Flow
+**Invoice_Line_Item__c**
+- Junction between Invoice__c and Subscription__c
+- Tracks: Period_Start__c, Period_End__c, Quantity__c, Unit_Price__c, Line_Amount__c
 
-### Subscription Creation Flow
-
-```
-1. User creates Subscription (UI)
-        ↓
-2. SubscriptionController validates input
-        ↓
-3. SubscriptionValidator checks business rules
-        ↓
-4. Record inserted
-        ↓
-5. SubscriptionTrigger fires
-        ↓
-6. SubscriptionTriggerHandler processes
-        ↓
-7. SubscriptionAutomationService executes business logic
-        ↓
-8. Platform Event published
-        ↓
-9. Platform Event Subscriber processes
-        ↓
-10. SlackNotificationService sends notification
-```
-
-### Invoice Generation Flow
-
-```
-1. DailyMaintenanceBatch runs (scheduled)
-        ↓
-2. Identifies active subscriptions needing invoices
-        ↓
-3. InvoiceAutomationService.generateInvoices()
-        ↓
-4. Creates Invoice__c records
-        ↓
-5. Creates InvoiceLineItem__c records
-        ↓
-6. InvoiceTrigger fires
-        ↓
-7. InvoiceTriggerHandler processes
-        ↓
-8. Platform Event published
-        ↓
-9. Email notification sent
-```
-
-## 🧩 Component Architecture
-
-### Lightning Web Components
-
-```
-┌──────────────────────────────────────────────────┐
-│         Lightning Web Components                  │
-├──────────────────────────────────────────────────┤
-│                                                   │
-│  invoiceManager                                   │
-│  ├── View/Edit Invoice                           │
-│  ├── Lightning Record Form                       │
-│  └── Custom Actions                              │
-│                                                   │
-│  subscriptionManager                              │
-│  ├── View/Edit Subscription                      │
-│  ├── Lightning Record Form                       │
-│  └── Custom Actions                              │
-│                                                   │
-│  invoiceOverdueDashboard                          │
-│  ├── Display Overdue Invoices                    │
-│  ├── Send Reminders                              │
-│  └── Navigate to Records                         │
-│                                                   │
-│  subscriptionExpiringWidget                       │
-│  ├── Display Expiring Trials                     │
-│  ├── Convert to Active                           │
-│  └── Navigate to Records                         │
-│                                                   │
-│  invoiceAnalyticsDashboard                        │
-│  ├── Display Metrics                             │
-│  ├── Charts                                      │
-│  └── Filters                                     │
-│                                                   │
-└──────────────────────────────────────────────────┘
-```
-
-### Apex Class Structure
-
-```
-Classes/
-├── Controllers/
-│   ├── SubscriptionController.cls
-│   └── InvoiceController.cls
-│
-├── Services/
-│   ├── SubscriptionAutomationService.cls
-│   ├── InvoiceAutomationService.cls
-│   └── SlackNotificationService.cls
-│
-├── Validators/
-│   ├── SubscriptionValidator.cls
-│   └── InvoiceValidator.cls
-│
-├── Trigger Handlers/
-│   ├── TriggerFramework.cls (abstract)
-│   ├── IHandler.cls (interface)
-│   ├── SubscriptionTriggerHandler.cls
-│   ├── InvoiceTriggerHandler.cls
-│   └── InvoiceLineItemTriggerHandler.cls
-│
-├── Platform Events/
-│   ├── PlatformEventPublisher.cls
-│   └── PlatformEventSubscriber.cls
-│
-├── Utilities/
-│   ├── Constants.cls
-│   ├── SecurityUtils.cls
-│   └── RecordTypeUtils.cls
-│
-├── Batch/
-│   └── DailyMaintenanceBatch.cls
-│
-└── Test Classes/
-    ├── TestDataFactory.cls
-    ├── TestScenarioFactory.cls
-    └── *Test.cls (15+ test classes)
-```
-
-## 🔐 Security Architecture
-
-### Field-Level Security (FLS)
-
-```
-User Request
-    ↓
-SecurityUtils.checkFieldAccess()
-    ↓
-    ├── Read: SecurityUtils.isAccessible()
-    ├── Create: SecurityUtils.isCreateable()
-    └── Update: SecurityUtils.isUpdateable()
-    ↓
-Operation Allowed / Denied
-```
-
-### Object-Level Security (CRUD)
-
-- Enforced through `WITH SECURITY_ENFORCED` in SOQL
-- Checked explicitly with `SecurityUtils` methods
-- Custom permissions for sensitive operations
-
-### Sharing Rules
-
-- Account-based sharing for Customer Success Team
-- Finance Team access to all invoices
-- Record Type-based data segregation
-
-## 🔄 Event-Driven Architecture
+**Price_Plan__c**
+- Reusable pricing templates
+- Fields: Unit_Price__c, Billing_Frequency__c, Trial_Days__c, Setup_Fee__c
 
 ### Platform Events
 
-```
-Business Event Occurs
-    ↓
-PlatformEventPublisher.publish()
-    ↓
-Platform Event Trigger
-    ↓
-PlatformEventSubscriber.handle()
-    ↓
-Process Event (async)
-    ├── SlackNotificationService
-    ├── Email Notifications
-    └── External System Integration
-```
+**Subscription_Event__e**
+- Published on: Subscription status changes
+- Fields: Subscription_Id__c, Status__c, Event_Type__c, Account_Id__c
 
-**Benefits**:
+**Invoice_Event__e**
+- Published on: Invoice creation, status changes
+- Fields: Invoice_Id__c, Status__c, Event_Type__c, Total_Amount__c
 
-- Asynchronous processing
-- Decoupled components
-- Scalability
-- Error handling
+**Purpose:** Async notifications to external systems (Slack) without blocking DML operations.
 
-## 📦 Deployment Architecture
+## Security Model
 
-### CI/CD Pipeline
+### Sharing Rules
+- All controllers use `with sharing`
+- Record access follows OWD (Org-Wide Defaults) and sharing rules
 
-```
-Developer Push
-    ↓
-GitHub Actions Triggered
-    ↓
-Validate Workflow
-    ├── Syntax Check
-    ├── Run Tests
-    └── Code Coverage Check
-    ↓
-Deploy Workflow (on merge)
-    ├── Deploy to Org
-    └── Run Tests
-    ↓
-Success / Failure Notification
-```
+### CRUD/FLS Enforcement
+- SOQL queries use `WITH SECURITY_ENFORCED` where possible
+- DML operations use `Security.stripInaccessible()` for FLS checks
+- `SecurityUtils` class provides field-level access checks
 
-## 🎯 Design Principles
+### Custom Permissions
+- `Cancel_Any_Subscription` - Allows cancelling subscriptions regardless of status
+- `Modify_Paid_Invoices` - Allows editing invoices after they're marked paid
 
-### SOLID Principles
+## Automation
 
-1. **Single Responsibility**: Each class has one reason to change
-2. **Open/Closed**: Open for extension, closed for modification
-3. **Liskov Substitution**: Trigger handlers implement IHandler
-4. **Interface Segregation**: IHandler provides minimal interface
-5. **Dependency Inversion**: Depend on abstractions (IHandler)
+### Triggers
+- `SubscriptionTrigger` - All events (before/after insert/update/delete/undelete)
+- `InvoiceTrigger` - All events
+- `InvoiceLineItemTrigger` - Before delete (validates invoice status)
+- `SubscriptionEventTrigger` - After insert (Platform Event subscriber)
+- `InvoiceEventTrigger` - After insert (Platform Event subscriber)
 
-### Salesforce Best Practices
+### Scheduled Jobs
+- `DailyMaintenanceBatch` - Marks overdue invoices, cancels expired trials
+  - Scheduled daily at midnight
+  - Batch size: 200 records
 
-1. **Bulkification**: All operations handle 200+ records
-2. **Governor Limits**: Conscious design to avoid limits
-3. **Security**: FLS, CRUD, and sharing rule enforcement
-4. **Testing**: Minimum 75% code coverage required (current: 71%, target: 90%+)
-5. **Separation of Concerns**: Clear layer boundaries
+### Flows
+- `Trial_Expiration_Monitoring` - Sends alerts for expiring trials (declarative alternative)
 
-## 🔧 Utility Components
+## Testing Strategy
 
-### Constants Class
+### Coverage Target
+- Org-wide: 77% (exceeds 75% deployment requirement)
+- Trigger Handlers: 97%+ (critical path)
+- Services: 86-100%
+- Validators: 89-94%
 
-Centralized location for:
+### Test Classes
+- Unit tests for each handler, service, validator
+- Integration tests for end-to-end workflows (EndToEndWorkflowTest)
+- Bulk testing (200 records) for governor limit validation
+- Negative testing for validation rules and security
 
-- Status values
-- Record Type developer names
-- Error messages
-- Configuration values
+### Test Utilities
+- `@testSetup` methods reduce redundant test data creation
+- Test factories ensure consistent, valid test data
+- Platform Events tested with `Test.getEventBus().deliver()`
 
-### RecordTypeUtils
+## Integration
 
-Helper methods for:
+### Slack Notifications
+- **Trigger:** Platform Event subscribers
+- **Method:** HTTP Callout to Slack Webhook URL
+- **Configuration:** Custom Metadata (Integration_Setting__mdt)
+- **Events:** New invoice, status changes, overdue invoices
 
-- Record Type ID retrieval
-- Record Type checking
-- Default Record Type determination
+### External System Considerations
+- Callouts wrapped in `@future` or Platform Events to avoid DML/Callout limits
+- Retry logic with exponential backoff (not yet implemented)
+- Idempotent operations to handle duplicate events
 
-### SecurityUtils
+## Performance Considerations
 
-Security enforcement for:
+### Bulkification
+- All triggers handle up to 200 records (standard batch size)
+- Collections (Maps, Sets) used to avoid nested loops
+- SOQL queries outside loops
 
-- Field-Level Security (FLS)
-- CRUD permissions
-- Sharing rule compliance
+### Governor Limits
+- Maximum 1 SOQL query per trigger method
+- DML operations batched (single `update` statement)
+- Platform Events published in bulk (`EventBus.publish(events)`)
 
-## 📈 Scalability Considerations
+### Async Processing
+- Platform Events for external callouts
+- Batch Apex for large data volumes
+- `@future` methods avoided where Platform Events suffice
 
-1. **Batch Processing**: DailyMaintenanceBatch for large data volumes
-2. **Asynchronous Processing**: Platform Events for non-critical operations
-3. **Query Optimization**: Selective queries with appropriate filters
-4. **Bulkification**: All triggers and services handle bulk operations
-5. **Caching**: Strategic use of static variables for query results
+## Deployment Notes
 
-## 🧪 Testing Architecture
+### Dependencies
+1. Custom Objects (Subscription__c, Invoice__c, Price_Plan__c, Invoice_Line_Item__c)
+2. Custom Permissions
+3. Apex Classes (handlers, services, validators, utils)
+4. Triggers
+5. Lightning Web Components
+6. Flows (optional)
+7. Custom Metadata Types (Integration_Setting__mdt)
 
-### Test Pyramid
+### Post-Deployment
+1. Load Price_Plan__c records
+2. Configure Integration_Setting__mdt for Slack (optional)
+3. Schedule DailyMaintenanceBatch (Apex: `System.schedule('Daily Maintenance', '0 0 0 * * ?', new DailyMaintenanceBatch())`)
+4. Assign permission sets to users
 
-```
-              /\
-             /  \
-            / E2E \      EndToEndWorkflowTest
-           /______\
-          /        \
-         /  Integr. \    Handler Tests, Service Tests
-        /____________\
-       /              \
-      /   Unit Tests   \  Validator Tests, Utility Tests
-     /__________________\
-```
+## Future Enhancements
 
-### Test Data Strategy
-
-1. **TestDataFactory**: Basic object creation
-2. **TestScenarioFactory**: Complex business scenarios
-3. **@TestSetup**: One-time test data setup
-4. **Test Isolation**: Each test independent
-
-## 📚 Related Documentation
-
-- [Security Documentation](SECURITY.md)
-- [Workflow Analysis](WORKFLOW_ANALYSIS.md)
-- [Manual Testing Guide](MANUAL_TESTING_GUIDE.md)
-- [Analysis Report](../ANALYSIS_REPORT.md)
-
-## 🔄 Future Enhancements
-
-Potential architecture improvements:
-
-1. **Queueable Apex**: For complex async operations
-2. **Custom Metadata Types**: For configuration management
-3. **Lightning Message Service**: For component communication
-4. **Einstein Analytics**: For advanced reporting
-5. **Apex REST Services**: For external API integration
-6. **Change Data Capture**: For real-time data synchronization
-
----
-
-_This architecture demonstrates enterprise-level Salesforce development patterns suitable for large-scale, production-grade applications._
+- Payment gateway integration (Stripe, PayPal)
+- Dunning management for failed payments
+- Subscription renewals automation
+- Advanced reporting with Einstein Analytics
+- Mobile app with Lightning Out

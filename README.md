@@ -1,220 +1,89 @@
-# Salesforce Portfolio
+# Salesforce Subscription Billing Portfolio
 
-[![Salesforce API](https://img.shields.io/badge/Salesforce%20API-v64.0-blue.svg)](https://developer.salesforce.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Code Coverage](https://img.shields.io/badge/Coverage-71%25-yellow.svg)](ANALYSIS_REPORT.md)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+Enterprise-grade Salesforce development portfolio demonstrating advanced Apex patterns, Lightning Web Components, and event-driven architecture.
 
-Enterprise-level Salesforce development portfolio showcasing advanced Apex patterns, Lightning Web Components, and modern integration architectures.
+## What This Demonstrates
 
-## 🎯 Overview
+**Core Competencies:**
+- Trigger Framework pattern with clean separation of concerns
+- Service Layer for reusable business logic
+- Platform Events for event-driven architecture
+- 77% test coverage with comprehensive test factories
+- Lightning Web Components with Apex integration
+- Security best practices (FLS, CRUD, Sharing)
+- Scheduled batch jobs for maintenance automation
 
-This repository demonstrates professional Salesforce development expertise through a comprehensive **Subscription Billing Management System**. The project showcases:
+**Tech Stack:** Apex • LWC • Platform Events • Batch Apex • SOQL • DML • Custom Metadata
 
-- ✅ Enterprise-grade Apex architecture (Trigger Framework, Service Layer, Validator Pattern)
-- ✅ Comprehensive test coverage (71%+) with test factories and scenario builders
-- ✅ Platform Events for event-driven architecture
-- ✅ Custom metadata-driven configuration
-- ✅ Security best practices (FLS, CRUD, Sharing)
-- ✅ Integration patterns with external systems (Slack notifications)
-- ✅ Scheduled jobs and batch processing
-- ✅ Modern CI/CD with GitHub Actions
-
-## 📁 Project Structure
-
-```
-├── force-app/main/default/
-│   ├── classes/              # Apex classes (trigger handlers, services, validators)
-│   ├── triggers/             # Apex triggers (5 triggers)
-│   ├── objects/              # Custom objects (Subscription, Invoice, etc.)
-│   ├── layouts/              # Page layouts
-│   ├── flexipages/           # Lightning pages
-│   ├── flows/                # Process automation flows
-│   ├── email/                # Email templates
-│   └── applications/         # Custom apps
-├── scripts/
-│   ├── apex/                 # Anonymous Apex scripts for setup/testing
-│   └── soql/                 # SOQL queries for development
-├── docs/                     # Additional documentation
-│   ├── MANUAL_TESTING_GUIDE.md
-│   ├── SECURITY.md
-│   └── WORKFLOW_ANALYSIS.md
-└── config/                   # Scratch org definitions
-```
-
-## 🏗️ Architecture Highlights
+## Architecture Highlights
 
 ### Trigger Framework
+```
+Trigger → TriggerFramework → Handler (IHandler) → Service Layer
+```
+- Single trigger per object
+- Bulkified operations
+- Testable business logic separated from triggers
 
-- Custom trigger framework with `IHandler` interface
-- Separation of concerns between triggers and business logic
-- Bulkified operations for governor limit optimization
+### Key Components
+- **SubscriptionTriggerHandler**: Lifecycle management, invoice generation, account rollups
+- **InvoiceTriggerHandler**: Status tracking, account statistics, platform events
+- **SubscriptionAutomationService**: Invoice creation from active subscriptions
+- **InvoiceAutomationService**: Task creation for invoice workflows
+- **Platform Events**: Async notifications for invoice/subscription changes
 
-### Service Layer Pattern
+### Data Model
+- `Subscription__c` (B2B/B2C record types) → `Invoice__c` → `Invoice_Line_Item__c`
+- `Price_Plan__c` (reusable pricing templates)
+- Status workflows: Draft → Trial → Active → Cancelled/Suspended
 
-- `SubscriptionAutomationService`: Handles subscription lifecycle automation
-- `InvoiceAutomationService`: Manages invoice generation and processing
-- `SlackNotificationService`: External system integration
+## Quick Start
 
-### Validation Layer
+```bash
+# Clone and setup
+git clone https://github.com/AntonioF99/SalesforcePortfolio.git
+cd SalesforcePortfolio
 
-- `SubscriptionValidator`: Business rule validation
-- `InvoiceValidator`: Data integrity checks
-- Centralized validation logic reusable across contexts
+# Create scratch org and deploy
+sf org create scratch -f config/project-scratch-def.json -a portfolio-scratch
+sf project deploy start
 
-### Platform Events
+# Run tests
+sf apex run test --test-level RunLocalTests --code-coverage --result-format human
+```
 
-- `SubscriptionEventTrigger`: Subscription state changes
-- `InvoiceEventTrigger`: Invoice lifecycle events
-- Event-driven architecture for loose coupling
+## Test Coverage
 
-## 🧪 Testing Strategy
+**Org-wide:** 77% (112 passing tests)
 
-- **Test Coverage**: 71% (targeting 90%+)
-- **Test Utilities**:
-  - `TestDataFactory`: Standardized test data creation
-  - `TestScenarioFactory`: Complex business scenario setup
-- **Test Classes**: 15+ comprehensive test classes covering:
-  - Trigger handlers
-  - Service classes
-  - Controllers
-  - Validators
-  - Utility classes
+Key classes:
+- Trigger Handlers: 97%+
+- Validators: 89-94%
+- Services: 86-100%
+- Controllers: 86%+
 
-## 🚀 Getting Started
+## Security
 
-### Prerequisites
-
-- Salesforce CLI (`sf` or `sfdx`)
-- Node.js (v18+) for linting and testing
-- VS Code with Salesforce Extensions (recommended)
-
-### Setup
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/AntonioF99/SalesforcePortfolio.git
-   cd SalesforcePortfolio
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Create a scratch org**
-
-   ```bash
-   sf org create scratch -f config/project-scratch-def.json -a portfolio-scratch
-   ```
-
-4. **Deploy the metadata**
-
-   ```bash
-   sf project deploy start
-   ```
-
-5. **Run tests**
-   ```bash
-   sf apex run test --test-level RunLocalTests --result-format human
-   ```
-
-## 🛠️ Development
-
-### Code Quality Tools
-
-- **Prettier**: Code formatting for Apex, LWC, and metadata
-
-  ```bash
-  npm run prettier        # Format all files
-  npm run prettier:verify # Check formatting
-  ```
-
-- **ESLint**: JavaScript linting for LWC
-
-  ```bash
-  npm run lint
-  ```
-
-- **Jest**: Unit tests for LWC
-  ```bash
-  npm run test:unit
-  ```
-
-### Pre-commit Hooks
-
-This project uses Husky for pre-commit hooks that automatically:
-
-- Format staged files with Prettier
-- Run ESLint on LWC files
-- Execute related Jest tests
-
-## 📊 Key Features
-
-### Subscription Management
-
-- Create and manage subscriptions with various billing frequencies
-- Trial period handling with automatic state transitions
-- Renewal and cancellation workflows
-- Record types for B2B and B2C subscriptions
-
-### Invoice Generation & Processing
-
-- Automated invoice generation from active subscriptions
-- Status lifecycle: Draft → Sent → Paid/Overdue
-- Invoice line items with quantity and pricing
-- Email notifications at key milestones
-
-### Automation
-
-- `DailyMaintenanceBatch`: Scheduled jobs for system maintenance
-- Flow-based trial expiration monitoring
-- Platform event-driven notifications
-
-### Security
-
-- Field-Level Security (FLS) checks via `SecurityUtils`
+- `with sharing` enforced on all controllers
 - `WITH SECURITY_ENFORCED` in SOQL queries
-- Custom permissions for sensitive operations
-- Record Type segregation for data access
+- `Security.stripInaccessible()` for DML operations
+- Field-level security (FLS) validation via `SecurityUtils`
+- Custom permissions for privileged operations
 
-## 📚 Documentation
+## Project Structure
 
-- [Architecture Overview](docs/ARCHITECTURE.md) - System design and patterns
-- [Manual Testing Guide](docs/MANUAL_TESTING_GUIDE.md) - Step-by-step testing procedures
-- [Manual UI Testing Guide](docs/MANUAL_UI_TESTING_GUIDE.md) - UI component testing
-- [Security Documentation](docs/SECURITY.md) - Security implementation details
-- [Workflow Analysis](docs/WORKFLOW_ANALYSIS.md) - Business process flows
-- [Slack Setup](SLACK_SETUP.md) - External integration configuration
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute or provide feedback
-- [Changelog](CHANGELOG.md) - Project version history
+```
+force-app/main/default/
+├── classes/           # 20 Apex classes (handlers, services, validators, utils)
+├── triggers/          # 5 triggers (Subscription, Invoice, InvoiceLineItem, Platform Events)
+├── lwc/               # 5 Lightning Web Components
+├── objects/           # Custom objects and fields
+├── flows/             # Declarative automation (trial expiration)
+└── applications/      # Custom app (Subscription Billing)
+```
 
-## 🔍 Code Analysis
+## About
 
-See [ANALYSIS_REPORT.md](ANALYSIS_REPORT.md) for a detailed code quality analysis including:
+This portfolio showcases professional Salesforce development practices suitable for enterprise environments. Built with focus on maintainability, testability, and scalability.
 
-- Identified issues and improvements
-- Test coverage metrics
-- Code quality metrics
-- Refactoring opportunities
-
-## 🤝 Contributing
-
-This is a portfolio project, but suggestions and feedback are welcome through issues.
-
-## 📄 License
-
-This project is created for portfolio and educational purposes.
-
-## 👤 Author
-
-**Antonio Franco**
-
-- GitHub: [@AntonioF99](https://github.com/AntonioF99)
-- Email: antoniofranco.99@outlook.com
-
----
-
-_This portfolio demonstrates professional Salesforce development skills including architecture design, testing strategies, CI/CD practices, and adherence to platform best practices._
+For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
