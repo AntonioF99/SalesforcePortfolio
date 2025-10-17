@@ -108,7 +108,7 @@ public class DailyMaintenanceBatch implements Database.Batchable<sObject>, Datab
         // Update status to Cancelled with reason
         for (Subscription__c sub : expiredTrials) {
             sub.Status__c = Constants.SUBSCRIPTION_STATUS_CANCELLED;
-            sub.Cancellation_Reason__c = 'Trial period expired';
+            sub.Cancellation_Reason__c = 'Other'; // Valid picklist value for all record types
             sub.Cancellation_Date__c = Date.today();
         }
 
