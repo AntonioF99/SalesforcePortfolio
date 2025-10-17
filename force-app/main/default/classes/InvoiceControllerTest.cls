@@ -177,41 +177,34 @@ private class InvoiceControllerTest {
      * @description Test error handling when sending reminder for paid invoice
      * Validates: Business rule enforcement, error messaging
      */
+    /**
+     * @description Test error handling when sending reminder for locked invoices (paid/voided)
+     * Validates: Business rule enforcement - cannot send reminders for locked statuses
+     */
     @isTest
-    static void testSendInvoiceReminder_AlreadyPaidError() {
-        // ARRANGE
+    static void testSendInvoiceReminder_LockedStatusError() {
+        // Test both paid and voided invoices (locked statuses)
         Invoice__c paidInvoice = [SELECT Id FROM Invoice__c WHERE Status__c = :Constants.INVOICE_STATUS_PAID LIMIT 1];
+        Invoice__c voidedInvoice = [SELECT Id FROM Invoice__c WHERE Status__c = :Constants.INVOICE_STATUS_VOIDED LIMIT 1];
 
-        // ACT & ASSERT: Should throw error for paid invoice
         Test.startTest();
+        
+        // Test paid invoice
         try {
             InvoiceController.sendInvoice(paidInvoice.Id);
             System.assert(false, 'Should have thrown exception for paid invoice');
         } catch (Exception e) {
-            // Exception was thrown as expected - business rule validated
             System.assertNotEquals(null, e, 'Exception should be thrown for paid invoice');
         }
-        Test.stopTest();
-    }
-
-    /**
-     * @description Test error handling when sending reminder for voided invoice
-     * Validates: Business rule enforcement for voided invoices
-     */
-    @isTest
-    static void testSendInvoiceReminder_VoidedInvoiceError() {
-        // ARRANGE
-        Invoice__c voidedInvoice = [SELECT Id FROM Invoice__c WHERE Status__c = :Constants.INVOICE_STATUS_VOIDED LIMIT 1];
-
-        // ACT & ASSERT
-        Test.startTest();
+        
+        // Test voided invoice
         try {
             InvoiceController.sendInvoice(voidedInvoice.Id);
             System.assert(false, 'Should have thrown exception for voided invoice');
         } catch (Exception e) {
-            // Exception was thrown as expected - business rule validated
             System.assertNotEquals(null, e, 'Exception should be thrown for voided invoice');
         }
+        
         Test.stopTest();
     }
 
