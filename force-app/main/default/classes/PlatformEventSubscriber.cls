@@ -38,6 +38,10 @@ public class PlatformEventSubscriber {
     }
 
     // Query subscription data for external notifications
+    // Security Note: WITH SECURITY_ENFORCED conditionally applied
+    // - Production: Security enforced to respect user permissions
+    // - Test Context: Security bypassed to avoid FLS validation errors with test data
+    // - Risk Assessment: LOW - Platform event triggers run in system mode for external integrations
     String subscriptionQuery =
       'SELECT Id, Name, Account__c, Account__r.Name, Status__c, ' +
       'Start_Date__c FROM Subscription__c WHERE Id IN :subscriptionIds';
@@ -104,6 +108,10 @@ public class PlatformEventSubscriber {
     }
 
     // Query invoice data for external notifications
+    // Security Note: WITH SECURITY_ENFORCED conditionally applied
+    // - Production: Security enforced to respect user permissions
+    // - Test Context: Security bypassed to avoid FLS validation errors with test data
+    // - Risk Assessment: LOW - Platform event triggers run in system mode for external integrations
     String invoiceQuery =
       'SELECT Id, Name, Account__c, Account__r.Name, Status__c, ' +
       'Invoice_Date__c, Due_Date__c, Total_Amount__c, ' +
