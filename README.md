@@ -87,7 +87,6 @@ force-app/main/default/
 
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Design patterns, data model, testing strategy
 - **[Security Model](docs/SECURITY.md)** - Sharing rules, CRUD/FLS, permissions, best practices
-- **[Slack Setup](docs/SLACK_SETUP.md)** - Webhook configuration for notifications
 - **[Scripts Reference](scripts/README.md)** - Apex and SOQL script catalog
 
 ## About
