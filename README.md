@@ -8,7 +8,7 @@ Enterprise-grade Salesforce development portfolio demonstrating advanced Apex pa
 - Trigger Framework pattern with clean separation of concerns
 - Service Layer for reusable business logic
 - Platform Events for event-driven architecture
-- 77% test coverage with comprehensive test factories
+- 85% test coverage with 131 passing tests
 - Lightning Web Components with Apex integration
 - Security best practices (FLS, CRUD, Sharing)
 - Scheduled batch jobs for maintenance automation
@@ -54,13 +54,14 @@ sf apex run test --test-level RunLocalTests --code-coverage --result-format huma
 
 ## Test Coverage
 
-**Org-wide:** 77% (112 passing tests)
+**Org-wide:** 85% | **Test Run:** 92% | **Tests Passing:** 131/131
 
 Key classes:
-- Trigger Handlers: 97%+
-- Validators: 89-94%
-- Services: 86-100%
-- Controllers: 86%+
+- Trigger Handlers: 98-99%
+- Platform Events: 96-97%
+- Services: 85-99%
+- Validators: 77-93%
+- Security Utils: 94%
 
 ## Security
 
