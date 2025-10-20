@@ -83,8 +83,13 @@ force-app/main/default/
 └── applications/      # Custom app (Subscription Billing)
 ```
 
+## Documentation
+
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Design patterns, data model, testing strategy
+- **[Security Model](docs/SECURITY.md)** - Sharing rules, CRUD/FLS, permissions, best practices
+- **[Slack Setup](docs/SLACK_SETUP.md)** - Webhook configuration for notifications
+- **[Scripts Reference](scripts/README.md)** - Apex and SOQL script catalog
+
 ## About
 
 This portfolio showcases professional Salesforce development practices suitable for enterprise environments. Built with focus on maintainability, testability, and scalability.
-
-For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).

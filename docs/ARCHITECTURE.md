@@ -140,10 +140,9 @@ Service Layer (SubscriptionAutomationService)
 ## Testing Strategy
 
 ### Coverage Target
-- Org-wide: 77% (exceeds 75% deployment requirement)
-- Trigger Handlers: 97%+ (critical path)
-- Services: 86-100%
-- Validators: 89-94%
+- Org-wide: 85% (exceeds 75% deployment requirement)
+- Test Run: 92%
+- Tests: 131 passing
 
 ### Test Classes
 - Unit tests for each handler, service, validator
